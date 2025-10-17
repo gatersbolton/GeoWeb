@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>前端测试页面</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div id="app">
+    <h1 class="text-2xl font-bold mb-4">钻孔椭圆度前端测试</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4">快速测试</h2>
+      
+      <div class="space-x-4 mb-4">
+        <button @click="testComplete" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          完整测试 (计算 + 可视化)
+        </button>
+        <button @click="resetTest" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+          重置
+        </button>
+      </div>
+      
+      <!-- 步骤指示器 -->
+      <div class="mb-4">
+        <div class="text-sm text-gray-600">
+          步骤: {{ currentStep }} | 
+          计算完成: {{ !!calculationResult }} | 
+          可视化完成: {{ !!visualizationResult }}
+        </div>
+      </div>
+      
+      <!-- 错误信息 -->
+      <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded">
+        <h3 class="font-semibold text-red-800">错误:</h3>
+        <p class="text-red-700">{{ error }}</p>
+      </div>
+      
+      <!-- 处理状态 -->
+      <div v-if="processing" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+        <div class="flex items-center">
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+          <span>{{ processingMessage }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 计算结果 -->
+    <div v-if="calculationResult" class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4">计算结果</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div>
+          <strong>Session ID:</strong><br>
+          <code class="text-xs">{{ calculationResult.session_id }}</code>
+        </div>
+        <div>
+          <strong>总深度点数:</strong><br>
+          {{ calculationResult.processing_info.depth_count }}
+        </div>
+        <div>
+          <strong>有效结果数:</strong><br>
+          {{ calculationResult.processing_info.valid_depths }}
+        </div>
+        <div>
+          <strong>方位角数量:</strong><br>
+          {{ calculationResult.processing_info.azimuth_count }}
+        </div>
+      </div>
+    </div>
+    
+    <!-- 可视化结果 -->
+    <div v-if="visualizationResult" class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">可视化结果</h2>
+      
+      <!-- 调试信息 -->
+      <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+        <strong>调试信息:</strong><br>
+        椭圆度图表: {{ visualizationResult.ellipticity_plot ? '✅ 存在 (' + visualizationResult.ellipticity_plot.length + ' 字符)' : '❌ 不存在' }}<br>
+        方位角图表: {{ visualizationResult.orientation_plot ? '✅ 存在 (' + visualizationResult.orientation_plot.length + ' 字符)' : '❌ 不存在' }}
+      </div>
+      
+      <!-- 椭圆度图表 -->
+      <div v-if="visualizationResult.ellipticity_plot" class="mb-6">
+        <h3 class="font-semibold mb-2">椭圆度参数随深度变化</h3>
+        <div class="border-2 border-green-200 rounded p-2">
+          <img :src="visualizationResult.ellipticity_plot" 
+               alt="椭圆度参数图表" 
+               class="w-full max-w-full h-auto"
+               @load="onImageLoad('椭圆度图表')"
+               @error="onImageError('椭圆度图表')">
+        </div>
+      </div>
+      
+      <!-- 方位角图表 -->
+      <div v-if="visualizationResult.orientation_plot" class="mb-6">
+        <h3 class="font-semibold mb-2">椭圆轴方位角分布</h3>
+        <div class="border-2 border-blue-200 rounded p-2">
+          <img :src="visualizationResult.orientation_plot" 
+               alt="方位角分布图表" 
+               class="w-full max-w-full h-auto"
+               @load="onImageLoad('方位角图表')"
+               @error="onImageError('方位角图表')">
+        </div>
+      </div>
+      
+      <!-- 无图表提示 -->
+      <div v-if="!visualizationResult.ellipticity_plot && !visualizationResult.orientation_plot" 
+           class="p-4 bg-red-50 border border-red-200 rounded">
+        <p class="text-red-700 font-semibold">❌ 没有生成任何图表</p>
+        <details class="mt-2">
+          <summary class="cursor-pointer text-sm text-gray-600">查看原始响应数据</summary>
+          <pre class="text-xs mt-2 bg-gray-100 p-2 rounded overflow-auto max-h-40">{{ JSON.stringify(visualizationResult, null, 2) }}</pre>
+        </details>
+      </div>
+    </div>
+    
+    <!-- 控制台日志 -->
+    <div class="mt-6 bg-gray-800 text-white rounded-lg p-4">
+      <h3 class="font-semibold mb-2">控制台日志:</h3>
+      <div class="text-xs space-y-1 max-h-40 overflow-y-auto">
+        <div v-for="(log, index) in logs" :key="index" :class="log.type === 'error' ? 'text-red-300' : 'text-green-300'">
+          [{{ log.time }}] {{ log.message }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+      setup() {
+        const currentStep = ref(0);
+        const processing = ref(false);
+        const processingMessage = ref('');
+        const error = ref('');
+        const calculationResult = ref(null);
+        const visualizationResult = ref(null);
+        const logs = ref([]);
+
+        const addLog = (message, type = 'info') => {
+          logs.value.push({
+            time: new Date().toLocaleTimeString(),
+            message: message,
+            type: type
+          });
+        };
+
+        const onImageLoad = (imageType) => {
+          addLog(`${imageType} 加载成功`, 'info');
+        };
+
+        const onImageError = (imageType) => {
+          addLog(`${imageType} 加载失败`, 'error');
+        };
+
+        const testComplete = async () => {
+          try {
+            error.value = '';
+            calculationResult.value = null;
+            visualizationResult.value = null;
+            logs.value = [];
+            
+            addLog('开始完整测试...');
+            
+            // 步骤1: 计算
+            currentStep.value = 1;
+            processing.value = true;
+            processingMessage.value = '正在进行椭圆度计算...';
+            
+            addLog('发送计算请求...');
+            
+            const calcFormData = new FormData();
+            calcFormData.append('use_demo', 'true');
+            calcFormData.append('rp', '0.019');
+            calcFormData.append('vf', '1480');
+
+            const calcResponse = await fetch('http://localhost:8000/borehole/calculate', {
+              method: 'POST',
+              body: calcFormData
+            });
+
+            const calcResult = await calcResponse.json();
+            
+            if (!calcResponse.ok) {
+              throw new Error(calcResult.error || '计算失败');
+            }
+
+            calculationResult.value = calcResult;
+            addLog(`计算成功，Session ID: ${calcResult.session_id}`);
+            
+            // 步骤2: 可视化
+            currentStep.value = 2;
+            processingMessage.value = '正在生成可视化图表...';
+            
+            addLog('发送可视化请求...');
+            
+            const vizFormData = new FormData();
+            vizFormData.append('session_id', calcResult.session_id);
+            vizFormData.append('dz', '0.1');
+            vizFormData.append('lenZ', '5');
+            vizFormData.append('cmapAmp', 'gray');
+            vizFormData.append('cmapRad', 'gray_r');
+
+            const vizResponse = await fetch('http://localhost:8000/borehole/visualize', {
+              method: 'POST',
+              body: vizFormData
+            });
+
+            const vizResult = await vizResponse.json();
+            
+            if (!vizResponse.ok) {
+              throw new Error(vizResult.error || '可视化失败');
+            }
+
+            visualizationResult.value = vizResult;
+            
+            addLog(`可视化成功!`);
+            addLog(`椭圆度图表: ${vizResult.ellipticity_plot ? '✅' : '❌'}`);
+            addLog(`方位角图表: ${vizResult.orientation_plot ? '✅' : '❌'}`);
+            
+            currentStep.value = 3;
+            processing.value = false;
+            
+          } catch (err) {
+            error.value = err.message;
+            addLog(`错误: ${err.message}`, 'error');
+            processing.value = false;
+          }
+        };
+
+        const resetTest = () => {
+          currentStep.value = 0;
+          processing.value = false;
+          processingMessage.value = '';
+          error.value = '';
+          calculationResult.value = null;
+          visualizationResult.value = null;
+          logs.value = [];
+          addLog('测试已重置');
+        };
+
+        // 初始化
+        addLog('页面加载完成，准备测试');
+
+        return {
+          currentStep,
+          processing,
+          processingMessage,
+          error,
+          calculationResult,
+          visualizationResult,
+          logs,
+          testComplete,
+          resetTest,
+          onImageLoad,
+          onImageError,
+          JSON
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+site_name: Borehole Ellipticity
+
+nav:
+  - Home: index.md
+
+theme:
+  name: readthedocs
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:   # LaTeX公式支持
+      generic: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

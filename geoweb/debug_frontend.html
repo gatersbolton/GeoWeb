@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>前端调试测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div id="app">
+    <h1 class="text-2xl font-bold mb-4">API测试和调试</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+      <h2 class="text-lg font-semibold mb-4">测试API连接</h2>
+      <button @click="testCalculation" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mr-4">
+        测试计算API
+      </button>
+      <button @click="testVisualization" :disabled="!sessionId" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400">
+        测试可视化API
+      </button>
+      
+      <div v-if="result" class="mt-4 p-4 bg-gray-50 rounded">
+        <h3 class="font-semibold">API响应:</h3>
+        <pre class="text-sm overflow-auto max-h-40">{{ JSON.stringify(result, null, 2) }}</pre>
+      </div>
+      
+      <div v-if="error" class="mt-4 p-4 bg-red-50 border border-red-200 rounded">
+        <h3 class="font-semibold text-red-800">错误:</h3>
+        <p class="text-red-700">{{ error }}</p>
+      </div>
+    </div>
+    
+    <div v-if="visualizationResult" class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">可视化结果</h2>
+      
+      <div v-if="visualizationResult.ellipticity_plot" class="mb-6">
+        <h3 class="font-semibold mb-2">椭圆度参数图表</h3>
+        <div class="border rounded p-2">
+          <img :src="visualizationResult.ellipticity_plot" alt="椭圆度参数图表" class="w-full max-w-full h-auto">
+        </div>
+        <p class="text-sm text-gray-600 mt-2">图片数据长度: {{ visualizationResult.ellipticity_plot.length }} 字符</p>
+      </div>
+      
+      <div v-if="visualizationResult.orientation_plot" class="mb-6">
+        <h3 class="font-semibold mb-2">方位角分布图</h3>
+        <div class="border rounded p-2">
+          <img :src="visualizationResult.orientation_plot" alt="方位角分布图表" class="w-full max-w-full h-auto">
+        </div>
+        <p class="text-sm text-gray-600 mt-2">图片数据长度: {{ visualizationResult.orientation_plot.length }} 字符</p>
+      </div>
+      
+      <div v-if="!visualizationResult.ellipticity_plot && !visualizationResult.orientation_plot" class="text-red-600">
+        没有图片数据返回
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+      setup() {
+        const result = ref(null);
+        const error = ref('');
+        const sessionId = ref('');
+        const visualizationResult = ref(null);
+
+        const testCalculation = async () => {
+          try {
+            error.value = '';
+            result.value = null;
+            
+            const formData = new FormData();
+            formData.append('use_demo', 'true');
+            formData.append('rp', '0.019');
+            formData.append('vf', '1480');
+
+            const response = await fetch('http://localhost:8000/borehole/calculate', {
+              method: 'POST',
+              body: formData
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(data.error || '计算失败');
+            }
+
+            result.value = data;
+            sessionId.value = data.session_id;
+            
+          } catch (err) {
+            error.value = err.message;
+          }
+        };
+
+        const testVisualization = async () => {
+          try {
+            error.value = '';
+            visualizationResult.value = null;
+            
+            const formData = new FormData();
+            formData.append('session_id', sessionId.value);
+            formData.append('dz', '0.1');
+            formData.append('lenZ', '5');
+            formData.append('cmapAmp', 'gray');
+            formData.append('cmapRad', 'gray_r');
+
+            const response = await fetch('http://localhost:8000/borehole/visualize', {
+              method: 'POST',
+              body: formData
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(data.error || '可视化失败');
+            }
+
+            visualizationResult.value = data;
+            console.log('可视化结果:', data);
+            
+          } catch (err) {
+            error.value = err.message;
+          }
+        };
+
+        return {
+          result,
+          error,
+          sessionId,
+          visualizationResult,
+          testCalculation,
+          testVisualization,
+          JSON
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
