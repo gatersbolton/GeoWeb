@@ -25,6 +25,34 @@ if V1_ROOT not in sys.path:
 from functions import ellip_orien, azimuth_rmse  # noqa: E402
 
 
+def _load_numeric_matrix_from_csv(path: str) -> np.ndarray:
+    # Detect Git LFS pointer file early
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            head = "".join([next(f, "") for _ in range(3)])
+        if "git-lfs.github.com/spec/v1" in head:
+            raise RuntimeError(
+                f"Input file looks like a Git LFS pointer, not real data: {path}\n"
+                "Please fetch large data files (e.g., run `git lfs install` then `git lfs pull`), "
+                "or download the dataset from the project data source."
+            )
+    except FileNotFoundError:
+        raise
+
+    df = pd.read_csv(path, dtype=str)
+    if len(df) > 0:
+        df = df.iloc[1:, :]
+    df = df.apply(pd.to_numeric, errors="coerce")
+
+    if df.shape[1] < 10:
+        raise ValueError(
+            f"Unexpected CSV shape {df.shape} from {path}. "
+            "Expecting at least 10 columns (Depth + parameters + tilt + azimuth). "
+            "Ensure you used the concatenated file with borehole trajectory."
+        )
+    return df.values
+
+
 def _centers(vmin: float, vmax: float, vint: float) -> np.ndarray:
     n = int(round((vmax - vmin) / vint))
     return vmin + vint * (np.arange(1, n + 1) - 0.5)
@@ -80,9 +108,7 @@ def invert_depthwise(input_filename: str,
                      max_iteration: int = 100,
                      save_json_also: bool = True) -> list[dict]:
     # Load input
-    df = pd.read_csv(input_filename, dtype=object)
-    df = df.iloc[1:, :].astype(np.float64)
-    A = df.values
+    A = _load_numeric_matrix_from_csv(input_filename)
 
     z = A[:, 0]
     z_start = math.floor(np.min(z) / dz) * dz

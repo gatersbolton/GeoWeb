@@ -20,6 +20,7 @@ import math
 import numpy as np
 import pandas as pd
 from scipy.io import savemat
+import time
 
 
 # Make sure we can import from V1.0/functions.py when running this script directly
@@ -29,6 +30,36 @@ if V1_ROOT not in sys.path:
     sys.path.append(V1_ROOT)
 
 from functions import ellip_orien, azimuth_rmse  # noqa: E402
+
+
+def _load_numeric_matrix_from_csv(path: str) -> np.ndarray:
+    # Detect Git LFS pointer file early
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            head = "".join([next(f, "") for _ in range(3)])
+        if "git-lfs.github.com/spec/v1" in head:
+            raise RuntimeError(
+                f"Input file looks like a Git LFS pointer, not real data: {path}\n"
+                "Please fetch large data files (e.g., run `git lfs install` then `git lfs pull`), "
+                "or download the dataset from the project data source."
+            )
+    except FileNotFoundError:
+        raise
+
+    # Read CSV, drop unit/header row, coerce to numeric
+    df = pd.read_csv(path, dtype=str)
+    if len(df) > 0:
+        df = df.iloc[1:, :]
+    df = df.apply(pd.to_numeric, errors="coerce")
+
+    # Basic shape sanity check
+    if df.shape[1] < 10:
+        raise ValueError(
+            f"Unexpected CSV shape {df.shape} from {path}. "
+            "Expecting at least 10 columns (Depth + parameters + tilt + azimuth). "
+            "Ensure you used the concatenated file with borehole trajectory."
+        )
+    return df.values
 
 
 def _build_initial_grid(a_min: float, a_max: float, a_int: float,
@@ -114,17 +145,24 @@ def _forward_major_a_list(candidates: np.ndarray, tilt: np.ndarray, azimuth: np.
 def invert_global(input_filename: str,
                   output_filename: str,
                   max_iteration: int = 100,
-                  save_json_also: bool = True) -> dict:
-    # Load and parse input CSV (skip the first row of units)
-    df = pd.read_csv(input_filename, dtype=object)
-    df = df.iloc[1:, :].astype(np.float64)
-    A = df.values
+                  save_json_also: bool = True,
+                  sample_stride: int = 1) -> dict:
+    # Load and parse input CSV robustly
+    A = _load_numeric_matrix_from_csv(input_filename)
 
     # Columns per MATLAB script (1-based in MATLAB):
     # major_ms = A(:,2); btilt = A(:,9); bazi = A(:,10)
     major_ms = A[:, 1]
     btilt = A[:, 8]
     bazi = A[:, 9]
+
+    # Optional subsampling along depth to speed up inversion
+    if sample_stride is None or sample_stride < 1:
+        sample_stride = 1
+    if sample_stride > 1:
+        major_ms = major_ms[::sample_stride]
+        btilt = btilt[::sample_stride]
+        bazi = bazi[::sample_stride]
 
     n_sample = len(major_ms)
 
@@ -159,6 +197,8 @@ def invert_global(input_filename: str,
 
     while (a_int > 0.5) and (iter_idx < max_iteration):
         iter_idx += 1
+        t0 = time.time()
+        print(f"[GlobalInv] Iter {iter_idx} | step={a_int:.3f}° | candidates={len(curr_candidates)} | samples={n_sample}")
 
         # Prepare storage for this iteration
         rmse_this = np.full(total_cnt, np.nan, dtype=float)
@@ -222,6 +262,9 @@ def invert_global(input_filename: str,
         curr_candidates = next_candidates
         a_int, b_int, c_int, phi_int, s3_int = a_int_new, b_int_new, c_int_new, phi_int_new, s3_int_new
 
+        dt = time.time() - t0
+        print(f"[GlobalInv] Iter {iter_idx} done in {dt:.2f}s | best RMSE={rank_top40[0,-1]:.4f}")
+
     # Final Rank_Top40 is the last one
     if len(rank_top40_all):
         Rank_Top40 = rank_top40_all[-1]
@@ -278,7 +321,8 @@ if __name__ == "__main__":
     output_filename = os.path.join(V1_ROOT, "data", "ST1_20210305_stress_inversion_outputs", "EllipseStressInv_py.mat")
 
     print("Processing (global inversion)...")
-    invert_global(input_filename=input_filename, output_filename=output_filename)
+    # Use subsampling for faster turnaround on large datasets; adjust to 1 for full precision
+    invert_global(input_filename=input_filename, output_filename=output_filename, sample_stride=5)
     print(f"Done. Output saved to {output_filename}")
 
 
