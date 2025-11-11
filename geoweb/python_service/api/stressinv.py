@@ -109,8 +109,8 @@ async def run_stress_inversion(
                 'source': source_label,
                 'summary': {'best': best},
                 'download_urls': {
-                    'result_mat': f'/stressinv/download/{session_id}/EllipseStressInv_py.mat',
-                    'result_json': f'/stressinv/download/{session_id}/EllipseStressInv_py.json'
+                    'result_mat': f'/api/stressinv/download/{session_id}/EllipseStressInv_py.mat',
+                    'result_json': f'/api/stressinv/download/{session_id}/EllipseStressInv_py.json'
                 }
             })
 
@@ -144,8 +144,8 @@ async def run_stress_inversion(
                 'source': source_label,
                 'summary': {'window_count': win_cnt, 'dz': dz_val},
                 'download_urls': {
-                    'result_mat': f'/stressinv/download/{session_id}/{mat_name}',
-                    'result_json': f'/stressinv/download/{session_id}/{os.path.splitext(mat_name)[0]}.json'
+                    'result_mat': f'/api/stressinv/download/{session_id}/{mat_name}',
+                    'result_json': f'/api/stressinv/download/{session_id}/{os.path.splitext(mat_name)[0]}.json'
                 }
             })
 
@@ -293,14 +293,14 @@ async def get_stressinv_result(session_id: str):
     # 组装下载链接
     if mode == 'global':
         download = {
-            'result_mat': f'/stressinv/download/{session_id}/EllipseStressInv_py.mat',
-            'result_json': f'/stressinv/download/{session_id}/EllipseStressInv_py.json',
+            'result_mat': f'/api/stressinv/download/{session_id}/EllipseStressInv_py.mat',
+            'result_json': f'/api/stressinv/download/{session_id}/EllipseStressInv_py.json',
         }
         summary = {'mode': mode}
     else:
         download = {
-            'result_mat': f'/stressinv/download/{session_id}/EllipseStressInv_win{int(dz)}m_py.mat',
-            'result_json': f'/stressinv/download/{session_id}/EllipseStressInv_win{int(dz)}m_py.json',
+            'result_mat': f'/api/stressinv/download/{session_id}/EllipseStressInv_win{int(dz)}m_py.mat',
+            'result_json': f'/api/stressinv/download/{session_id}/EllipseStressInv_win{int(dz)}m_py.json',
         }
         summary = {'mode': mode, 'dz': dz}
 
