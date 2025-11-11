@@ -410,13 +410,12 @@
             <div class="visualization-layout">
               <!-- 左侧纵向深度滑条 -->
               <div class="depth-slider">
-                <div class="slider-wrapper">
+              <div class="slider-wrapper" v-if="meta && meta.zMin !== undefined && meta.zMax !== undefined" :style="{'--depthPct': depthPct + '%'}">
                   <el-slider
-                    v-if="meta && meta.zMin !== undefined && meta.zMax !== undefined"
                     vertical
                     v-model="sliderValue"
-                    :min="meta.zMin"
-                    :max="meta.zMax - visualizeParams.lenZ"
+                    :min="0"
+                    :max="maxDepth"
                     :step="meta.dz || 0.1"
                     height="70vh"
                     :format-tooltip="formatDepthTooltip"
@@ -436,6 +435,7 @@
                     <small v-if="windowInfo">（{{ windowInfo.zTop.toFixed(2) }} - {{ windowInfo.zBottom.toFixed(2) }} m）</small>
                   </h4>
                   <div class="plot-container" :class="{ preview: isPreview }">
+                    <div v-if="previewLoading" class="loading-hint">预览渲染中...</div>
                     <img :src="visualizeResult.ellipticity_plot" alt="椭圆度参数图表" />
                   </div>
                 </div>
@@ -478,7 +478,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { UploadFilled, Document } from '@element-plus/icons-vue'
 import { calculateBoreholeEllipticity, visualizeBoreholeEllipticity } from '@/api/borehole'
 import { ElMessage } from 'element-plus'
@@ -533,25 +533,57 @@ const meta = reactive({ zMin: null, zMax: null, dz: null })
 const zTop = ref(null)
 const isPreview = ref(false)
 const windowInfo = ref(null)
+const previewLoading = ref(false)
+// 深度映射：将真实深度 depth（0 在顶部）与 EP 控件值分离
+const maxDepth = ref(0)        // 允许的最大相对深度（= zMax - zMin - lenZ）
+const depth = ref(0)           // 真实相对深度（0 at top）
+const sliderValue = ref(0)     // 控件值 = maxDepth - depth
+const depthPct = computed(() => {
+  if (!maxDepth.value || maxDepth.value <= 0) return 0
+  return (depth.value / maxDepth.value) * 100
+})
 
 function formatDepthTooltip(v) {
   if (v == null) return ''
-  const top = v
-  const bottom = visualizeParams.lenZ != null ? (v + Number(visualizeParams.lenZ)) : v
-  return `${top.toFixed(2)} - ${bottom.toFixed(2)} m`
+  // 将 EP 竖向滑块的值（上=最大，下=最小）映射为真实“绝对深度 zTop”
+  const md = Number(maxDepth.value) || 0
+  const d  = md - Number(v || 0)                 // 真实“相对深度”（上=0）
+  const nd = d < 0 ? 0 : (d > md ? md : d)       // clamp 到 [0, maxDepth]
+  const z0 = (meta.zMin != null) ? Number(meta.zMin) : 0
+  const zAbs = z0 + nd                           // 绝对深度 = zMin + 相对深度
+  return `${zAbs.toFixed(2)} m`
 }
 
-// 为了实现“上浅下深”的交互，使用反向映射：
-// sliderValue: 0..(zMax-zMin-lenZ) --> zTop = zMin + sliderValue
-// 但显示上让上方为浅部，使用 CSS 翻转容器或反向计算。
-const sliderValue = ref(null)
+// 工具函数：钳制
+function clamp(v, min, max) {
+  return Math.min(max, Math.max(min, v))
+}
 
-function syncSliderFromMeta(){
-  if (meta.zMin != null && meta.zMax != null){
-    if (zTop.value == null) zTop.value = meta.zMin
-    sliderValue.value = zTop.value // 直接用 zTop 做值，视觉上再翻转方向
+// 当滑块值变化时（用户拖动） -> 更新真实深度 depth 与 zTop
+watch(sliderValue, (sv) => {
+  const md = Number(maxDepth.value) || 0
+  const d = clamp(md - Number(sv), 0, md)   // 约定：sliderValue = maxDepth - depth
+  if (d !== depth.value) depth.value = d
+  if (meta.zMin != null) {
+    const zt = Number(meta.zMin) + d
+    if (zt !== zTop.value) {
+      zTop.value = zt
+      windowInfo.value = { zTop: zt, zBottom: zt + Number(visualizeParams.lenZ) }
+    }
   }
-}
+})
+
+// 当 zTop（例如服务端回写或其他操作）变化时 -> 反向更新 depth 与 sliderValue
+watch([zTop, maxDepth, () => meta.zMin], () => {
+  if (zTop.value == null || meta.zMin == null) return
+  const md = Number(maxDepth.value) || 0
+  const d = clamp(Number(zTop.value) - Number(meta.zMin), 0, md)
+  if (d !== depth.value) depth.value = d
+  const sv = md - d
+  if (sv !== sliderValue.value) sliderValue.value = sv
+})
+
+// 使用 CSS 旋转实现上浅下深，滑条数值与 zTop 保持一致
 
 // 处理状态
 const calculateProgress = reactive({
@@ -683,6 +715,7 @@ async function handleVisualize() {
   }
 
   visualizeProgress.processing = true
+  let vizLoadingMsg = null
 
   try {
     const formData = new FormData()
@@ -708,6 +741,8 @@ async function handleVisualize() {
     // 初次渲染采用 final 质量，并获取元信息
     formData.append('quality', 'final')
 
+    // 持续提示
+    vizLoadingMsg = ElMessage({ message: '正在生成可视化图表，请稍候...', type: 'info', duration: 0, showClose: true })
     const res = await visualizeBoreholeEllipticity(formData)
     visualizeResult.value = res
 
@@ -724,6 +759,15 @@ async function handleVisualize() {
         zTop.value = meta.zMin
         windowInfo.value = { zTop: meta.zMin, zBottom: meta.zMin + visualizeParams.lenZ }
       }
+      // 初始化 maxDepth / depth / sliderValue
+      if (meta.zMin != null && meta.zMax != null) {
+        const span = Number(meta.zMax) - Number(meta.zMin) - Number(visualizeParams.lenZ)
+        maxDepth.value = span > 0 ? span : 0
+        depth.value = (zTop.value != null && meta.zMin != null) ? (Number(zTop.value) - Number(meta.zMin)) : 0
+        if (depth.value < 0) depth.value = 0
+        if (depth.value > maxDepth.value) depth.value = maxDepth.value
+        sliderValue.value = maxDepth.value - depth.value
+      }
     }
 
     currentStep.value = 3
@@ -732,6 +776,7 @@ async function handleVisualize() {
     console.error('可视化失败:', error)
     ElMessage.error('可视化生成失败，请检查参数设置')
   } finally {
+    if (vizLoadingMsg && typeof vizLoadingMsg.close === 'function') vizLoadingMsg.close()
     visualizeProgress.processing = false
   }
 }
@@ -752,6 +797,7 @@ async function requestPreview() {
   try {
     cancelPending()
     pendingController = new AbortController()
+    previewLoading.value = true
     const res = await axios.post('/api/borehole/visualize', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       signal: pendingController.signal,
@@ -761,6 +807,13 @@ async function requestPreview() {
       visualizeResult.value.ellipticity_plot = res.data.ellipticity_plot
       if (res.data.meta?.window) {
         windowInfo.value = res.data.meta.window
+        // 同步后端修正回来的 window（若后端对 zTop 进行了边界修正）
+        if (typeof res.data.meta.window.zTop === 'number') {
+          const serverZTop = Number(res.data.meta.window.zTop)
+          if (!Number.isNaN(serverZTop)) {
+            zTop.value = serverZTop
+          }
+        }
       }
       isPreview.value = true
     }
@@ -769,12 +822,16 @@ async function requestPreview() {
       console.warn('预览请求失败', e)
     }
   }
+  finally {
+    previewLoading.value = false
+  }
 }
 
 function onDepthInput() {
   // 节流 200ms
   if (previewTimer) clearTimeout(previewTimer)
   previewTimer = setTimeout(() => {
+    // sliderValue -> depth -> zTop 已通过 watch 同步，这里直接请求预览
     requestPreview()
   }, 200)
 }
@@ -1015,10 +1072,6 @@ function resetWorkflow() {
 
 .result-summary h4 {
   color: #303133;
-.slider-wrapper { transform: rotate(180deg); }
-.slider-wrapper :deep(.el-slider__bar),
-.slider-wrapper :deep(.el-slider__button-wrapper) { transform: rotate(180deg); }
-
   margin-bottom: 10px;
 }
 
@@ -1035,6 +1088,19 @@ function resetWorkflow() {
 }
 .depth-slider :deep(.el-slider) {
   margin: 0;
+}
+.slider-wrapper { /* 使用 CSS 变量实现上半段着色 */ }
+.depth-slider :deep(.el-slider.is-vertical .el-slider__bar) {
+  background: transparent !important;
+}
+.depth-slider :deep(.el-slider.is-vertical .el-slider__runway) {
+  background: linear-gradient(
+    to bottom,
+    #1677ff 0%,
+    #1677ff var(--depthPct),
+    #e8f1ff var(--depthPct),
+    #e8f1ff 100%
+  ) !important;
 }
 .plot-container img {
   max-width: 100%;
@@ -1151,5 +1217,15 @@ function resetWorkflow() {
   .step-actions .el-button {
     margin: 5px;
   }
+}
+.loading-hint {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 </style>

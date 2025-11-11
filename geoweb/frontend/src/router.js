@@ -5,6 +5,7 @@ import Login from './views/Login.vue'
 import Register from './views/Register.vue'
 import MapData from './views/MapData.vue'
 import BoreholeEllipticity from './views/BoreholeEllipticity.vue'
+import StressInversion from './views/StressInversion.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -14,6 +15,7 @@ const routes = [
   { path: '/user', component: User },
   { path: '/csv', component: CsvSum },
   { path: '/borehole', component: BoreholeEllipticity },
+  { path: '/stressinv', component: StressInversion },
 ]
 
 const router = createRouter({

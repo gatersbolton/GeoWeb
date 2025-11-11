@@ -250,7 +250,8 @@ def generate_enhanced_plots(ellip_dir, amp_path=None, inc_path=None, azi_path=No
         units, z_all, phi_major_all, phi_minor_all, d_major_all, d_minor_all, center_x_all, center_y_all, fitting_error_all = _load_ellipticity_arrays(ellip_dir)
 
         # 计算衍生参数
-        ratio_all = d_minor_all / d_major_all  # 轴比
+        # 与 generate_ellipticity_multi_column_plot 保持一致：轴比 = 长轴 / 短轴
+        ratio_all = d_major_all / d_minor_all  # 轴比
         ed_all = np.sqrt(center_x_all**2 + center_y_all**2)  # 偏心距离
         ea_all = np.degrees(np.arctan2(center_y_all, center_x_all))  # 偏心方位角
         ea_all = (ea_all + 360) % 360  # 转换为0-360度
@@ -310,7 +311,7 @@ def generate_enhanced_plots(ellip_dir, amp_path=None, inc_path=None, azi_path=No
 
         # 椭圆轴方位角分布直方图（全局）
         plots['orientation_plot'] = generate_orientation_histogram(
-            phi_major, phi_minor, output_dir
+            phi_major_all, phi_minor_all, output_dir
         )
 
         plots['cross_section_plot'] = plots['polar_plot']
@@ -631,10 +632,26 @@ def generate_all_plots(ellip_dir, output_dir=None):
     plots['ellipticity_plot'] = generate_ellipticity_multi_column_plot(ellip_dir, output_dir)
 
     print("生成极坐标方位角分布图...")
-    plots['orientation_plot'] = generate_polar_orientation_plot(ellip_dir, output_dir)
+    polar_img = generate_polar_orientation_plot(ellip_dir, output_dir)
+    # 为兼容前端，同时提供两个键
+    plots['orientation_plot'] = polar_img
+    plots['polar_plot'] = polar_img
 
     # 为了保持与原有接口的兼容性，同时提供第三个图表位置
     plots['cross_section_plot'] = plots['orientation_plot']  # 复用第二个图
     plots['radius_plot'] = None  # 第三个位置留空或可以生成其他图表
+
+    # 基础元数据，便于前端显示滑条（无需窗口裁剪能力）
+    try:
+        _, z_all, *_ = _load_ellipticity_arrays(ellip_dir)
+        plots['meta'] = {
+            'zMin': float(np.nanmin(z_all)) if len(z_all) else None,
+            'zMax': float(np.nanmax(z_all)) if len(z_all) else None,
+            'dz': None,
+            'lenZ': None,
+            'window': None
+        }
+    except Exception:
+        pass
 
     return plots
