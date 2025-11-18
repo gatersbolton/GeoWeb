@@ -24,6 +24,11 @@ services:
       - MPLCONFIGDIR=/tmp/mpl
     expose:
       - "8000"
+    volumes:
+      # 左边：宿主机路径（相对于 docker-compose.yml）
+      # 右边：容器内路径（你的代码现在用的就是这个路径）
+      - ./python/BoreholeEllipStressInv/V1.0/data:/app/python/BoreholeEllipStressInv/V1.0/data:ro
+      - ./python/Borehole ellipticity/data:/app/python/Borehole ellipticity/data:ro
 
   backend:
     build:

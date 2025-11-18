@@ -687,7 +687,7 @@ async function handleCalculate() {
     }
 
     // 调用异步计算API
-    const response = await axios.post('http://localhost:8000/borehole/calculate_async', formData, {
+    const response = await axios.post('/api/borehole/calculate_async', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -879,7 +879,7 @@ function closeProgressMonitor() {
 async function onCalculationCompleted(data) {
   try {
     // 获取计算结果
-    const response = await axios.get(`http://localhost:8000/borehole/result/${currentSessionId.value}`)
+    const response = await axios.get(`/api/borehole/result/${currentSessionId.value}`)
     calculateResult.value = response.data
     currentStep.value = 1
     calculateProgress.processing = false

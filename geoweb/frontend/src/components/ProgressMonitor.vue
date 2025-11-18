@@ -137,7 +137,7 @@ function startProgressPolling() {
   
   const pollInterval = setInterval(async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/borehole/progress/${props.sessionId}`)
+      const response = await axios.get(`/api/borehole/progress/${props.sessionId}`)
       if (response.data) {
         const prevMessage = currentMessage.value
         handleProgressUpdate(response.data)
