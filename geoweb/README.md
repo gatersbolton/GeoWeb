@@ -8,11 +8,12 @@
 - 计算微服务：FastAPI + numpy/pandas/matplotlib 等，封装“钻孔椭圆度计算/可视化”算法（算法代码来自课题组既有仓库），暴露异步计算、进度、结果与下载接口。
 
 ### 目录结构
-- `frontend/` 前端源码（Vue3 + Vite）
-- `backend/` 后端（Spring Boot 3 + WebFlux + MyBatis）
-- `python_service/` FastAPI 计算微服务
-- `python/` 课题组算法及其依赖与演示数据（非本项目作者编写）
-- `test_*.py` 集成/端到端测试脚本与示例输出
+- `apps/frontend/` 前端源码（Vue3 + Vite）
+- `apps/backend/` 后端（Spring Boot 3 + WebFlux + MyBatis）
+- `apps/python-service/` FastAPI 计算微服务
+- `packages/compute/borehole-ellipticity/` 钻孔椭圆度算法与演示数据
+- `packages/compute/stress-inversion/` 地应力反演算法
+- `outputs/test/` 运行产物与示例输出
 
 ### 功能特性
 - 上传 ATV 测井 CSV 数据，调用算法计算钻孔横截面椭圆度参数。
@@ -32,29 +33,29 @@
 ### 快速开始
 1) 启动 Python 计算微服务（默认端口 8000）
 ```
-cd python_service
+cd apps/python-service
 python -m venv .venv
 . .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 # 安装算法依赖（算法仓库自身需求）
-pip install -r ../python/Borehole\ ellipticity/requirements.txt
-python app.py
+pip install -r ../../packages/compute/borehole-ellipticity/requirements.txt
+uvicorn python_service.app:app --reload
 # 访问 http://localhost:8000/docs 查看 API 文档
 ```
 
 2) 启动后端（默认端口 8081）
 - 如需启用用户模块（`/user/*`），请先准备 MySQL：
   - 新建数据库：`geoweb_demo`
-  - 在 `backend/src/main/resources/application.properties` 中配置用户名与密码（默认示例为 `root/996060`，请按需修改）
+  - 在 `apps/backend/src/main/resources/application.properties` 中配置用户名与密码（默认示例为 `root/996060`，请按需修改）
 - 启动：
 ```
-cd backend
+cd apps/backend
 ./mvnw spring-boot:run  # Windows: mvnw.cmd spring-boot:run
 ```
 
 3) 启动前端（Vite 开发服务器）
 ```
-cd frontend
+cd apps/frontend
 npm install
 npm run dev
 # 默认 http://localhost:5173
@@ -63,7 +64,7 @@ npm run dev
 启动顺序建议：1) Python 微服务 → 2) Spring Boot → 3) 前端。
 
 ### 端口与代理
-- 前端开发代理（见 `frontend/vite.config.js`）：
+- 前端开发代理（见 `apps/frontend/vite.config.js`）：
   - `/user` → `http://localhost:8081`
   - `/api` → `http://localhost:8081`
 - Python 微服务：`http://localhost:8000`
@@ -94,18 +95,13 @@ npm run dev
   - Step3/4 可视化：支持“演示可视化数据”、窗口滑条预览（预览/最终两级渲染）
 
 ### 配置与参数
-- 后端上传限制（`backend/src/main/resources/application.properties`）：
+- 后端上传限制（`apps/backend/src/main/resources/application.properties`）：
   - `spring.servlet.multipart.max-file-size=500MB`
   - `spring.servlet.multipart.max-request-size=500MB`
 - Python 微服务对外 URL（后端通过 `python.service.url` 指定，默认 `http://localhost:8000`）
 
 ### 测试与示例数据
-- 示例数据位于 `python/Borehole ellipticity/data`
-- 可用根目录下 `test_*.py` 进行接口与端到端试跑（示例）：
-```
-python test_complete_system.py
-python test_demo_data.py
-```
+- 示例数据位于 `packages/compute/borehole-ellipticity/data`
 
 ### 常见问题（FAQ）
 - Q：为何部分请求直接打到 8000，而不是全部走 8081？

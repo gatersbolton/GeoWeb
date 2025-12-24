@@ -2,7 +2,7 @@ version: "3.9"
 services:
   web:
     build:
-      context: ./frontend
+      context: ./apps/frontend
       dockerfile: Dockerfile
     image: geoweb-web:latest
     restart: unless-stopped
@@ -12,12 +12,12 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/deploy/nginx.conf:/etc/nginx/nginx.conf:ro
 
   python:
     build:
       context: .
-      dockerfile: python_service/Dockerfile
+      dockerfile: apps/python-service/Dockerfile
     image: geoweb-python:latest
     restart: unless-stopped
     environment:
@@ -27,13 +27,13 @@ services:
     volumes:
       # 左边：宿主机路径（相对于 docker-compose.yml）
       # 右边：容器内路径（你的代码现在用的就是这个路径）
-      - ./python/BoreholeEllipStressInv/V1.0/data:/app/python/BoreholeEllipStressInv/V1.0/data:ro
-      - ./python/Borehole ellipticity/data:/app/python/Borehole ellipticity/data:ro
+      - ./packages/compute/stress-inversion/V1.0/data:/app/packages/compute/stress-inversion/V1.0/data:ro
+      - ./packages/compute/borehole-ellipticity/data:/app/packages/compute/borehole-ellipticity/data:ro
 
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./apps/backend
+      dockerfile: Dockerfile
     image: geoweb-backend:latest
     restart: unless-stopped
     environment:
