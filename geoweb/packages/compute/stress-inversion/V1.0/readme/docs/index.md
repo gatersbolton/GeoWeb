@@ -1,0 +1,328 @@
+# Welcome to the Borehole Ellipticity project
+
+I'm Guangyu Wang, the primary contributor, and author of this documentation.  
+This README will help you understand the project structure and get started quickly.  
+
+Borehole Ellipticity project contains codes that can compute borehole (cross-sectional) ellipticity from acoustic televiwer (ATV) logs, and invert in-situ stress states from borehole ellipticity.
+
+The codes are hosted on USTC Geomechanics Group's private cloud server, accessible through [here](http://222.195.76.160:5000/sharing/LOs2oXrH1).
+
+<img src="images/logo.png" alt="logo" width="40%" style="display:block; margin:auto;"/>
+
+<br>
+
+## Project layout
+
+    borehole_ellipticity.py  # Compute borehole ellipticity from ATV traveltime log.
+    
+    stressinv/  # Stress inversion codes.
+        stressinv_ellipticity.m  # Invert stress state from borehole ellitpicity (entire borehole)
+        stressinv_ellipticity_depthwise.m  # Invert stress states from borehole ellipticity (depth intervals)
+        stress_vector_to_strike_dip.m
+        compute_aphi.m
+        euler_angle_to_stress_vector.m
+        RMSE_azimuth.m
+        EllipAxisOrien.m
+
+    process/  # Data processing codes.
+        borehole_ellipticity_outlier_filter.py  # Filter outliers of borehole ellipticity.
+        borehole_ellipticity_resampling.py  # Resample borehole ellipticity.
+        concat_ellipticity_borehole_trajectory.py  # Add borehole trajectory to borehole ellipticity as new columns.
+    
+    vis/  # Data visualzation codes.
+        dispCSV.py  # Display ATV log.
+        dispCrossSection.py  # Display borehole cross-sections.
+        dispEllip.py  # Display borehole ellipticity parameters.
+    
+    data/  # Demo data.
+        ST1_20210305_DEV_ATV_up_main_TT_NM.csv  # ATV traveltime log.
+        ST1_20210305_DEV_ATV_up_main_AMP_NM.csv  # ATV amplitude log.
+        ST1_20210305_DEV_ATV_up_main_AZIMUTH.csv  # ATV-measured borehole azimuths.
+        ST1_20210305_DEV_ATV_up_main_TILT.csv  # ATV-measured borehole tilt angles.
+        ST1_20210305_DEV_ATV_up_main_WNDTIME.csv  # ATV acoustic window traveltime log.
+        borehole_ellipticity_outputs/
+            ellipticity_parameters.csv  # Borehole ellipticity parameters.
+            centralized_traveltime.csv  # Centralized ATV traveltime.
+            borehole_radius.csv
+            borehole_cross_section_azimuths.csv
+
+    functions.py  # Function repository.
+
+    requirement.txt  # Dependencies for building the environment.
+
+<br>
+
+## Installation
+Prepare a Python environment with Python ≥ 3.10 using conda command:
+
+`conda create -n ellipticity python=3.10`
+
+Download the project from the [cloud server](http://210.45.127.136:5000/sharing/D8bb5BGxJ) to a folder on your local device.
+
+Then enter the folder, and install all the required package using pip command:
+
+`pip install -r requirements.txt`
+
+Finally, activate the environment using conda command:
+
+`conda activate ellipticity`
+
+Now you are all set.
+
+<br>
+
+## Compute borehole ellipticity
+For computing borehole ellipticity, you need to open the following Python script:
+
+`borehole_ellipticity.py`
+
+which conducts least-square ellipse fitting to borehole cross-sections derived from the ATV traveltime log.
+
+Then, edit the input section, which has already been configured for demonstration:
+
+```
+# ---------------------- Input section ---------------------- #
+# File path to the ATV traveltime log.
+fp_tt = './data/ST1_20210305_DEV_ATV_up_main_TT_NM.csv'
+# File path to the ATV tool's acoustic window traveltime (AWT) log. 
+# Optional. Input None if not available.
+# The AWT is the two-way traveltime of the acoustic signal within the ATV tool.
+fp_wtt = './data/ST1_20210305_DEV_ATV_up_main_WNDTIME.csv'
+# When the AWT log is not available, define an AWT value (same unit as the ATV traveltime).
+# Optional. Input None if the AWT log is available.
+wtt = None
+# Radius of the ATV tool's acoustic head (unit: meter).
+rp = 0.019  # Reference value for ALT-QL40-ABI.
+# Sonic velocity of borehole fluid (unit: m/s).
+vf = 1480
+# A mutilplier for converting the ATV traveltime's unit to millisecond.
+# Input None if not needed.
+beta = None
+# File path of the ATV traveltime log's mask which will partially exclude the traveltime log from ellipse fitting.
+# Optional.
+fp_mask = None
+# Output directory.
+dir_out = './data/ST1_20210305_borehole_ellipticity_outputs'
+# ----------------------------------------------------------- #
+```
+
+Then, run the script.
+
+The outputs are stored in `data/ST1_20210305_borehole_ellipticity_outputs` folder by default. The ellipticity parameters are saved in `ellipse_parameters.csv`:
+
+| Depth | Azimuth_Major | Azimuth_Minor | Diameter_Major | Diameter_Minor | Center_x | Center_y | FittingError|
+|-------|---------------|---------------|----------------|----------------|----------|----------|-------------|
+| m | deg | deg | mm | mm | mm | mm | mm |
+| 213.3626099 |	27.2013076 | 117.2013076 | 218.1290569 | 217.1751262 | -7.505987566 | -9.398823525 |0.618327876|
+| 213.3667755 |	37.70659401 | 127.706594 | 218.1568949 | 217.2814357 | -7.510627093 | -9.334088801 |0.594598325|
+| 213.3709412 |	37.70659401 | 127.706594 | 218.1568949 | 217.2814357 | -7.510627093 | -9.334088801 |0.594598325|
+| ... |	... | ... | ... | ... | ... | ... |...|
+
+Explanation of the parameters:
+
+1. **Depth**: Measured depth along the borehole.
+2. **Azimuth_Major**: Major axis azimuth of the ellipse fitted to the borehole cross-section.
+3. **Azimuth_Minor**: Minor axis azimuth of the ellipse fitted to the borehole cross-section.
+4. **Diameter_Major**: Major axis diameter of the ellipse fitted to the borehole cross-section.
+5. **Diameter_Minor**: Minor axis diameter of the ellipse fitted to the borehole cross-section.
+6. **Center_x**: ATV tool center's x-coordinate relative to the center of the borehole.
+7. **Center_y**: ATV tool center's y-coordinate relative to the center of the borehole.
+8. **FittingError**: Fitting error between the ellipse and borehole cross-section.
+
+Some by-products are also saved to the output folder:
+
+1. `centralized_traveltime.csv`: The centralized ATV traveltime log.
+2. `borehole_radius.csv`: Circumferential borehole radius log.
+3. `borehole_cross_section_azimuths.csv`: Corrected azimuth of the ATV traveltime log.
+
+<br>
+
+## Display borehole ellipticity
+
+There are two ways to display borehole ellipticity: either displaying ellipticity parameters over the measured depth or on borehole cross-sections.
+
+### Display over the measured depth
+
+Open the `vis/dispEllip.py` script, and edit the input section, which has already been configured for demonstration:
+
+```
+# ---------------------- Input section ---------------------- #
+# File path to ellipticity parameters.
+ellip_fpath = '../data/borehole_ellipticity_outputs/ellipticity_parameters.csv'
+# Resampling ellipticity parameters over the measured depth using the following dz interval.
+# You may input None to skip the resampling (m, or ft, or other length units, depending on the measured depth in the ATV logs). 
+dz = 0.1
+# File path to the ATV amplitude log.
+fp_atvAmp = '../data/ST1_20210305_DEV_ATV_up_main_AMP_NM.csv'
+# File path to the borehole radius log.
+fp_atvRad = '../data/borehole_ellipticity_outputs/borehole_radius.csv'
+# Colormap for the ATV amplitude log.
+cmapAmp = 'gray'
+# Colormap for the ATV traveltime log.
+cmapRad = 'gray_r'
+# File path to the ATV-measured borehole inclination.
+fp_atvInc = '../data/ST1_20210305_DEV_ATV_up_main_TILT.csv'
+# Fila path to the ATV-measured borehole azimuth.
+fp_atvAzi = '../data/ST1_20210305_DEV_ATV_up_main_AZIMUTH.csv'
+# Length for display (m, or ft, or other length units, depending on the measured depth in the ATV logs).
+lenZ = 5
+# ----------------------------------------------------------- #
+```
+
+Then, run the script.
+
+It will pop up two windows. 
+
+One is a multi-column figure of the ellipticity parameters, ATV logs, and ATV-measured borehole inclination and azimuth:
+
+<img src="images/dispEllipOut1.png" alt="ellip_params" width="100%" style="display:block; margin:auto;"/>
+
+The other window contains two rose diagrams showing the orientations of ellipse major and minor axis azimuths, respectively:
+
+<img src="images/dispEllipOut2.png" alt="rose_diagram" width="60%" style="display:block; margin:auto;"/>
+
+<br>
+
+## Process borehole ellipticity
+There are three basic processing of borehole ellipticity: 1. removing outliers based on the ellipse fitting error, 2. resampling borehole ellipticity along the measured depth, and 3. concatenating borehole ellipticity and borehole trajectory.
+
+### Removing outliers based on ellipse fitting error
+Open `process/borehole_ellipticity_outlier_filter.py`. Then, edit the input section, which has already been configured for demonstration:
+```
+# ---------------------- Input section ---------------------- #
+# Input file path.
+fpin = "../data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters.csv"
+# Depth interval for processing. Input None to use the minimum/maximum value.
+zmin, zmax = 20, None
+# Maximum ellipse fitting error (mm).
+max_error = 1
+# Output file path.
+fpout = "../data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered.csv"
+# ----------------------------------------------------------- #
+```
+Running this script will remove the ellipse parameters with ellipse fitting error greater than 1 mm.  
+
+You can change the maximum ellipse fitting error to your need.  
+
+The output ellipticity parameters are stored in `data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered.csv` by default.
+
+### Resampling ellipse parameters over the measured depth
+Open `process/borehole_ellipticity_resampling.py`. Then, edit the input section, which has already been configured for demonstration:
+```
+# ---------------------- Input section ---------------------- #
+# File path of the input ellipticity parameters.
+fpin = "../data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered.csv"
+# Resampling depth interval (m).
+dz = 0.025
+# Subsampling method.
+# "average": taking the average value of each ellipticity parameters (circular mean for azimuths).
+# "nearest": taking the nearest value of each ellipticity paramters.
+method = "average"
+# File path of the output ellipticity parameters.
+fpout = "../data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered_dz0.025m.csv"
+# ----------------------------------------------------------- #
+```
+Running this script will resample the ellipticity parameters over the measured depth to an interval of 0.025 m by taking the average of the parameters.  
+
+You can change the resampling depth interval and method to your need.  
+
+The output ellipticity parameters are stored in `data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered_dz0.025m.csv` by default.  
+
+### Concatenate borehole ellipticity and borehole trajectory.
+For stress inversion from the ellipticity parameters of deviated boreholes, the stress inversion workflow requires a single file of borehole ellipticity and borehole trajectory (tilt and azimuth).  
+
+`process/concat_ellipticity_borehole_trajectory.py` can concatenate borehole ellipticity and borehole trajectory as a single csv file.  
+
+The input section of this script is demonstrated as followed:
+
+```
+# ---------------------- Input section ---------------------- #
+# File path of borehole ellipticity parameters.
+felp = "../data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered_dz0.025m.csv"
+# File path of borehole tilt.
+fbtl = "../data/ST1_20210305_DEV_ATV_up_main_TILT.csv"
+# File path of borehole azimuth.
+fbaz = "../data/ST1_20210305_DEV_ATV_up_main_AZIMUTH.csv"
+# Output file path.
+fout = '../data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered_dz0.025m_borehole_trajectory.csv'
+# ----------------------------------------------------------- #
+```
+The borehole trajectory is interpolated to the measured depth of borehole ellipticity parameters.  
+
+The output file is saved as `data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered_dz0.025m_borehole_trajectory.csv` by default.
+
+<br>
+
+## Stress inversion
+Stress can be inverted from borehole ellipticity based on the relationship between in-situ stress and borehole cross-sectional deformation. More details can be found in this [paper](https://www.jstage.jst.go.jp/article/ijjcrm/10/1/10_5/_article/-char/ja/).  
+
+We have developed different workflows for deviated and vertical boreholes.  
+
+### Stress inversion from deviated boreholes
+For deviated boreholes, we adopt the [neighborhood algorithm](https://doi.org/10.1046/j.1365-246X.1999.00876.x) to search for the best stress state that yields the lowest root-mean-square error between the theoretical and observed ellipse axis azimuths (i.e., the inversion misfit) in a certain depth interval: 
+
+<img src="images/deviatedBoreholeStressInvWorkflow.png" alt="deviated_borehole_workflow" style="display:block; margin:auto;"/>  
+
+The $A_{\phi}$ represents the relative stress magnitude, which is defined as followed:  
+$$(n+0.5)+(-1)^n(\phi-0.5)$$
+where n is assigned 0, 1, and 2 for normal, strike-slip, and reverse faulting regimes, respectively. $\phi$ is the stress ratio defined as:  
+$$\phi=\frac{(S_2-S_3)}{(S_1-S_3)}$$  
+
+#### Global stress inversion
+`stressinv/stressinv_ellipticity.m` is an easy-to-use MatLab script that conduct global stress inversion from the ellipse axis azimuths of the entire measured depth interval.  
+
+The input section is demonstrated as followed:  
+
+```
+%---------------------------Input section----------------------------------           
+% Borehole ellipticity file path.
+input_filename = "../data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered_dz0.025m_borehole_trajectory.csv";
+% Stress inversion output file path.
+output_filename = "../data/ST1_20210305_stress_inversion_outputs/EllipseStressInv.mat";
+%--------------------------------------------------------------------------
+```
+
+The output is a `.mat` file storing multiple parameters:  
+1. Rank_Top40: a 40 $\times$ 6 array storing the best 40 stress states of the last iteration, which are ranked by the inversion misfit. Data from the 1st to the 6th columns are the Euler angles a, b, c, stress ratio, relative magnitude of $S_3$, and the inversion misfits, respectively.  
+2. Rank_Top40_all: a 40 $\times$ 6 $\times$ 100 array storing the best 40 stress states of every iteration.  
+3. a_range: a N $\times$ 100 array storing the Euler angle a of each combination of stress parameters. N is the number of combinations.  
+4. b_range: a N $\times$ 100 array storing the Euler angle b of each combination of stress parameters.  
+5. c_range: a N $\times$ 100 array storing the Euler angle c of each combination of stress parameters.  
+6. phi_range: a N $\times$ 100 array storing the stress ratio $\phi$ of each combination of stress parameters.  
+7. S3_range: a N $\times$ 100 array storing the relative magnitude of $S_3$ of each combination of stress parameters.  
+8. RMSE_store: a N $\times$ 100 array storing the inversion misfit of each combination of stress parameters.  
+9. para_cnt: The number of combinations of stress parameters.  
+
+#### Local stress inversion
+Local stress inversion can also be conducted in segmented intervals along the measured depth using the MatLab script `stressinv_ellipticity_depthwise.m`.  
+
+The input section is demonstrated as followed:
+
+```
+%---------------------------Input section----------------------------------     
+% Borehole ellipticity file path.
+input_filename = "../data/ST1_20210305_borehole_ellipticity_outputs/ellipticity_parameters_outlier_filtered_dz0.025m_borehole_trajectory.csv";
+% Stress inversion output file path.
+output_filename = "../data/ST1_20210305_stress_inversion_outputs/EllipseStressInv_win25m.mat";
+% Depth interval (m).
+dz = 25;
+% If the proportion of NaN values in the window is higher than this threshold, will NOT do the inversion.
+nan_thres = 0.5;
+%--------------------------------------------------------------------------
+```
+
+The outputs are saved in a structure array as a `.mat` file.  
+
+There will be multiple structures in the structure array. Each structure contains the following parameters within a measured depth interval:  
+1. zmid: Central depth of the interval.  
+2. zmin: Minimum depth of the interval.  
+3. zmax: Maximum depth of the interval.  
+4. Rank_Top40: a 40 $\times$ 6 array storing the best 40 stress states of the last iteration, which are ranked by the inversion misfit. Data from the 1st to the 6th columns are the Euler angles a, b, c, stress ratio, relative magnitude of $S_3$, and the inversion misfits, respectively.  
+5. Rank_Top40_all: a 40 $\times$ 6 $\times$ 100 array storing the best 40 stress states of every iteration.  
+6. a_range: a N $\times$ 100 array storing the Euler angle a of each combination of stress parameters. N is the number of combinations.  
+7. b_range: a N $\times$ 100 array storing the Euler angle b of each combination of stress parameters.  
+8. c_range: a N $\times$ 100 array storing the Euler angle c of each combination of stress parameters.  
+9. phi_range: a N $\times$ 100 array storing the stress ratio $\phi$ of each combination of stress parameters.  
+10. S3_range: a N $\times$ 100 array storing the relative magnitude of $S_3$ of each combination of stress parameters.  
+11. RMSE_store: a N $\times$ 100 array storing the inversion misfit of each combination of stress parameters.  
+12. para_cnt: The number of combinations of stress parameters. 

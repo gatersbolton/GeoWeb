@@ -1,0 +1,15 @@
+﻿# apps/frontend
+
+用途
+- Vue 3 + Vite 前端。
+
+内容
+- src/api: API 请求封装。
+- src/views: 页面。
+- src/components: 组件。
+- src/styles: 全局样式。
+- vite.config.js: 代理与构建配置。
+
+说明
+- 开发服务器默认端口 5173。
+- node_modules 为生成目录。
