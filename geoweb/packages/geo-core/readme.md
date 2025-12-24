@@ -4,7 +4,8 @@ Purpose
 - Shared geoscience domain models and math utilities.
 
 Contents
-- (placeholder for shared code)
+- artifacts/
+  - stick-and-pull: stick-and-pull artifact removal (demo image + Python script).
 
 Notes
 - Keep logic language-agnostic when possible.

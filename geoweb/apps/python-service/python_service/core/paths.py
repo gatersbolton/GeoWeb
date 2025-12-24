@@ -50,3 +50,29 @@ def ensure_stressinv_path() -> None:
     if target not in sys.path:
         sys.path.append(target)
 
+
+def geo_core_artifacts_dir() -> str:
+    """Return path to 'packages/geo-core/artifacts' directory."""
+    return os.path.join(repo_root(), 'packages', 'geo-core', 'artifacts')
+
+
+def stick_pull_dir() -> str:
+    """Return path to 'packages/geo-core/artifacts/stick-and-pull' directory."""
+    return os.path.join(geo_core_artifacts_dir(), 'stick-and-pull')
+
+
+def stick_pull_demo_image() -> str:
+    """Return path to default stick-and-pull demo image."""
+    return os.path.join(stick_pull_dir(), 'stick_pull.png')
+
+
+def ensure_stick_pull_path() -> None:
+    """Ensure the stick-and-pull artifact dir is in sys.path for imports."""
+    target = os.path.normpath(stick_pull_dir())
+    if target not in sys.path:
+        sys.path.append(target)
+
+
+# Ensure path immediately on import for stick-and-pull helpers
+ensure_stick_pull_path()
+

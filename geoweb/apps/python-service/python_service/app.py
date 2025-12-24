@@ -4,6 +4,7 @@ import matplotlib
 
 from .api.borehole import router as borehole_router
 from .api.stressinv import router as stressinv_router
+from .api.augmentation import router as augmentation_router
 
 # 配置 matplotlib 中文字体
 matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS', 'DejaVu Sans']
@@ -23,6 +24,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(borehole_router)
 app.include_router(stressinv_router)
+app.include_router(augmentation_router)
 
 if __name__ == '__main__':
     import uvicorn

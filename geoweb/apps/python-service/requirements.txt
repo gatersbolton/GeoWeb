@@ -7,3 +7,4 @@ python-multipart
 lsq-ellipse==2.2.1
 scikit-image==0.24.0
 scipy 
+Pillow

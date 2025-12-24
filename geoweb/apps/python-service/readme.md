@@ -10,5 +10,6 @@ Contents
 
 Notes
 - Uvicorn entry is python_service.app:app.
-- Depends on packages/compute algorithms.
+- Depends on packages/compute algorithms and packages/geo-core artifacts.
 - Default port is 8000.
+- Augmentation API: POST `/api/augmentation/run` for stick-and-pull artifact removal.
