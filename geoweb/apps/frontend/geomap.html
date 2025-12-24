@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地应力数据可视化系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  
+  <!-- Google Map API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=visualization"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- 顶部导航 -->
+    <header class="bg-blue-600 text-white shadow-lg">
+      <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <i class="fa fa-map-o text-2xl"></i>
+          <h1 class="text-xl font-bold">地应力数据可视化系统</h1>
+        </div>
+        <div class="flex space-x-4">
+          <button class="hover:text-gray-200 transition-colors">
+            <i class="fa fa-refresh mr-1"></i>刷新数据
+          </button>
+          <button class="hover:text-gray-200 transition-colors">
+            <i class="fa fa-cog mr-1"></i>设置
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-4">
+      <!-- 侧边栏 -->
+      <aside class="md:w-1/4 bg-white rounded-lg shadow p-4 flex flex-col">
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold mb-2">数据筛选</h2>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">日期范围</label>
+              <div class="flex space-x-2">
+                <input type="date" class="w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <input type="date" class="w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">测量类型</label>
+              <select class="w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <option>全部类型</option>
+                <option>压应力</option>
+                <option>张应力</option>
+                <option>剪应力</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">应力范围</label>
+              <div class="flex items-center space-x-2">
+                <input type="range" min="0" max="100" value="50" class="w-full">
+                <span class="text-sm">50 MPa</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold mb-2">测量点列表</h2>
+          <div class="overflow-y-auto max-h-64 border border-gray-200 rounded">
+            <ul class="divide-y divide-gray-200">
+              <li class="p-2 hover:bg-gray-50 cursor-pointer">
+                <div class="font-medium">测量点 A</div>
+                <div class="text-sm text-gray-500">压应力: 45 MPa</div>
+              </li>
+              <li class="p-2 hover:bg-gray-50 cursor-pointer">
+                <div class="font-medium">测量点 B</div>
+                <div class="text-sm text-gray-500">张应力: 32 MPa</div>
+              </li>
+              <li class="p-2 hover:bg-gray-50 cursor-pointer">
+                <div class="font-medium">测量点 C</div>
+                <div class="text-sm text-gray-500">剪应力: 67 MPa</div>
+              </li>
+              <li class="p-2 hover:bg-gray-50 cursor-pointer">
+                <div class="font-medium">测量点 D</div>
+                <div class="text-sm text-gray-500">压应力: 28 MPa</div>
+              </li>
+              <li class="p-2 hover:bg-gray-50 cursor-pointer">
+                <div class="font-medium">测量点 E</div>
+                <div class="text-sm text-gray-500">剪应力: 55 MPa</div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-auto">
+          <h2 class="text-lg font-semibold mb-2">图例</h2>
+          <div class="space-y-2">
+            <div class="flex items-center">
+              <div class="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
+              <span class="text-sm">高压应力 (>70 MPa)</span>
+            </div>
+            <div class="flex items-center">
+              <div class="w-4 h-4 bg-yellow-500 rounded-full mr-2"></div>
+              <span class="text-sm">中压应力 (30-70 MPa)</span>
+            </div>
+            <div class="flex items-center">
+              <div class="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
+              <span class="text-sm">低压应力 (<30 MPa)</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 地图和图表区域 -->
+      <div class="md:w-3/4 flex flex-col gap-4">
+        <!-- 地图容器 -->
+        <div class="bg-white rounded-lg shadow p-4 flex-grow">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">地应力分布图</h2>
+            <div class="flex space-x-2">
+              <button class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                <i class="fa fa-plus mr-1"></i>添加测量点
+              </button>
+              <button class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                <i class="fa fa-download mr-1"></i>导出
+              </button>
+            </div>
+          </div>
+          <div id="map" class="w-full h-[500px] rounded-lg border border-gray-200"></div>
+        </div>
+
+        <!-- 数据图表 -->
+        <div class="bg-white rounded-lg shadow p-4">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">应力数据分析</h2>
+            <div class="flex space-x-2">
+              <button class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors text-sm">
+                周视图
+              </button>
+              <button class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm">
+                月视图
+              </button>
+              <button class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors text-sm">
+                年视图
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="h-[200px]">
+              <canvas id="stressChart"></canvas>
+            </div>
+            <div class="h-[200px]">
+              <canvas id="distributionChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-800 text-white py-4">
+      <div class="container mx-auto px-4 text-center">
+        <p>© 2025 地应力数据可视化系统 | 由 Vue3 + Google Map 提供支持</p>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+    import { GoogleMap, Marker } from 'https://cdn.jsdelivr.net/npm/vue3-google-map@2.0.0/dist/index.min.js';
+
+    // 示例地应力数据
+    const stressData = [
+      { id: 1, name: "测量点 A", position: { lat: 39.9042, lng: 116.4074 }, type: "压应力", value: 45 },
+      { id: 2, name: "测量点 B", position: { lat: 39.9142, lng: 116.4274 }, type: "张应力", value: 32 },
+      { id: 3, name: "测量点 C", position: { lat: 39.8942, lng: 116.4174 }, type: "剪应力", value: 67 },
+      { id: 4, name: "测量点 D", position: { lat: 39.9042, lng: 116.3974 }, type: "压应力", value: 28 },
+      { id: 5, name: "测量点 E", position: { lat: 39.9242, lng: 116.4074 }, type: "剪应力", value: 55 },
+    ];
+
+    // 创建颜色映射函数
+    function getStressColor(value) {
+      if (value > 70) return 'rgba(239, 68, 68, 0.8)'; // 红色
+      if (value > 30) return 'rgba(234, 179, 8, 0.8)';  // 黄色
+      return 'rgba(34, 197, 94, 0.8)';                   // 绿色
+    }
+
+    // 创建箭头符号
+    function createArrowSymbol(rotation) {
+      return {
+        path: 'M 0,-1 0,1 1,0 z',
+        fillColor: '#3B82F6',
+        fillOpacity: 1,
+        strokeWeight: 1,
+        rotation: rotation,
+        scale: 5
+      };
+    }
+
+    const app = createApp({
+      setup() {
+        const mapRef = ref(null);
+        const selectedMarker = ref(null);
+        
+        // 初始化地图
+        const initMap = () => {
+          const map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: 39.9042, lng: 116.4074 },
+            zoom: 12,
+            mapTypeId: 'terrain'
+          });
+          
+          // 添加应力数据点
+          stressData.forEach(data => {
+            const marker = new google.maps.Marker({
+              position: data.position,
+              map: map,
+              title: `${data.name}: ${data.value} MPa`,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: getStressColor(data.value),
+                fillOpacity: 0.8,
+                strokeWeight: 1
+              }
+            });
+            
+            // 添加箭头显示应力方向（简化示例）
+            const stressDirection = data.type === '压应力' ? 0 : 
+                                    data.type === '张应力' ? 180 : 90;
+            const arrow = new google.maps.Marker({
+              position: data.position,
+              map: map,
+              icon: createArrowSymbol(stressDirection),
+              zIndex: 1
+            });
+            
+            // 添加点击事件
+            marker.addListener('click', () => {
+              selectedMarker.value = data;
+              showInfoWindow(marker, data);
+            });
+          });
+          
+          mapRef.value = map;
+        };
+        
+        // 显示信息窗口
+        const showInfoWindow = (marker, data) => {
+          const infoWindow = new google.maps.InfoWindow({
+            content: `
+              <div style="padding: 8px;">
+                <h3 style="font-weight: bold; margin-bottom: 4px;">${data.name}</h3>
+                <p>应力类型: ${data.type}</p>
+                <p>应力值: ${data.value} MPa</p>
+                <div style="margin-top: 8px;">
+                  <canvas id="stressGauge" width="120" height="60"></canvas>
+                </div>
+              </div>
+            `
+          });
+          
+          infoWindow.open(mapRef.value, marker);
+          
+          // 更新仪表盘
+          setTimeout(() => {
+            updateStressGauge(data.value);
+          }, 100);
+        };
+        
+        // 更新应力仪表盘
+        const updateStressGauge = (value) => {
+          const ctx = document.getElementById('stressGauge').getContext('2d');
+          const maxValue = 100;
+          
+          // 清除画布
+          ctx.clearRect(0, 0, 120, 60);
+          
+          // 绘制背景圆弧
+          ctx.beginPath();
+          ctx.arc(60, 60, 50, Math.PI, 0, false);
+          ctx.strokeStyle = '#ddd';
+          ctx.lineWidth = 10;
+          ctx.stroke();
+          
+          // 绘制值圆弧
+          ctx.beginPath();
+          ctx.arc(60, 60, 50, Math.PI, Math.PI - (value / maxValue) * Math.PI, true);
+          ctx.strokeStyle = getStressColor(value);
+          ctx.lineWidth = 10;
+          ctx.stroke();
+          
+          // 绘制指针
+          ctx.beginPath();
+          ctx.moveTo(60, 60);
+          const angle = Math.PI - (value / maxValue) * Math.PI;
+          const endX = 60 + 40 * Math.cos(angle);
+          const endY = 60 + 40 * Math.sin(angle);
+          ctx.lineTo(endX, endY);
+          ctx.strokeStyle = '#333';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // 添加文本
+          ctx.fillStyle = '#333';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${value} MPa`, 60, 50);
+        };
+        
+        // 初始化图表
+        const initCharts = () => {
+          // 应力趋势图
+          const stressCtx = document.getElementById('stressChart').getContext('2d');
+          new Chart(stressCtx, {
+            type: 'line',
+            data: {
+              labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+              datasets: [{
+                label: '平均压应力',
+                data: [42, 45, 48, 46, 50, 52],
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.3,
+                fill: true
+              }, {
+                label: '平均剪应力',
+                data: [35, 38, 40, 42, 45, 48],
+                borderColor: '#F97316',
+                backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                tension: 0.3,
+                fill: true
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: '应力值 (MPa)'
+                  }
+                }
+              }
+            }
+          });
+          
+          // 应力分布饼图
+          const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+          new Chart(distributionCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['压应力', '张应力', '剪应力'],
+              datasets: [{
+                data: [45, 25, 30],
+                backgroundColor: [
+                  '#3B82F6',
+                  '#10B981',
+                  '#F97316'
+                ],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                }
+              },
+              cutout: '65%'
+            }
+          });
+        };
+        
+        onMounted(() => {
+          initMap();
+          initCharts();
+        });
+        
+        return {
+          mapRef,
+          selectedMarker
+        };
+      }
+    });
+
+    // 注册Google Map组件
+    app.component('GoogleMap', GoogleMap);
+    app.component('Marker', Marker);
+    
+    app.mount('#app');
+  </script>
+</body>
+</html>    

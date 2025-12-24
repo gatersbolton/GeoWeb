@@ -28,15 +28,15 @@
 ### 1. 启动Python服务 (端口: 8000)
 
 ```bash
-cd python_service
+cd apps/python-service
 pip install -r requirements.txt
-python app.py
+uvicorn python_service.app:app --reload
 ```
 
 ### 2. 启动后端SpringBoot服务 (端口: 8081)
 
 ```bash
-cd backend
+cd apps/backend
 ./mvnw spring-boot:run
 # 或者在Windows上使用
 mvnw.cmd spring-boot:run
@@ -45,7 +45,7 @@ mvnw.cmd spring-boot:run
 ### 3. 启动前端开发服务器 (端口: 3000)
 
 ```bash
-cd frontend
+cd apps/frontend
 npm install
 npm run dev
 ```
@@ -99,9 +99,9 @@ npm run dev
 **解决方案**: 
 1. 检查文件大小是否超过500MB限制
 2. 如果需要处理更大文件，可以修改以下配置：
-   - 后端: `backend/src/main/resources/application.properties` 中的 `spring.servlet.multipart.max-file-size`
-   - 前端: `frontend/src/views/BoreholeEllipticity.vue` 中的 `MAX_FILE_SIZE` 常量
-   - Python服务: `python_service/app.py` 中的文件大小检查
+   - 后端: `apps/backend/src/main/resources/application.properties` 中的 `spring.servlet.multipart.max-file-size`
+   - 前端: `apps/frontend/src/views/BoreholeEllipticity.vue` 中的 `MAX_FILE_SIZE` 常量
+   - Python服务: `apps/python-service/python_service/app.py` 中的文件大小检查
 
 ### 图表中文显示为方框
 
@@ -127,7 +127,7 @@ npm run dev
 **问题**: 大文件处理时间过长导致超时
 **解决方案**:
 1. 前端API超时时间已设置为5分钟
-2. 如需处理更大文件，可增加 `frontend/src/api/borehole.js` 中的 `timeout` 值
+2. 如需处理更大文件，可增加 `apps/frontend/src/api/borehole.js` 中的 `timeout` 值
 
 ### 快速重启服务
 如果遇到配置问题，可以使用快速重启脚本：
@@ -136,17 +136,19 @@ npm run dev
 ./restart_services.bat
 
 # 手动重启
-cd python_service && python app.py
-cd backend && ./mvnw spring-boot:run  
-cd frontend && npm run dev
+cd apps/python-service && uvicorn python_service.app:app --reload
+cd apps/backend && ./mvnw spring-boot:run  
+cd apps/frontend && npm run dev
 ```
 
 ## 文件结构
 
 ```
-├── frontend/           # Vue3前端项目
-├── backend/           # SpringBoot后端项目
-├── python_service/    # Python数据处理服务
-└── python/           # 原始Python椭圆度分析算法
-    └── Borehole ellipticity/
+├── apps/
+│   ├── frontend/           # Vue3前端项目
+│   ├── backend/            # SpringBoot后端项目
+│   └── python-service/     # Python数据处理服务
+└── packages/
+    └── compute/
+        └── borehole-ellipticity/
 ``` 
