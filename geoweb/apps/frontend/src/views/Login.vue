@@ -27,6 +27,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { loginUser } from '@/api/user'
 import { ElMessage } from 'element-plus'
+import { setUsername } from '@/utils/userStore'
 
 const router = useRouter()
 const loginForm = ref(null)
@@ -48,6 +49,7 @@ const onSubmit = () => {
       if (res.data === '登录成功') {
         ElMessage.success('登录成功')
         localStorage.setItem('loggedIn', 'true')
+        setUsername(form.value.username)
         router.push('/csv')
       } else {
         ElMessage.error(res.data || '登录失败')

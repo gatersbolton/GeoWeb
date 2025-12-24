@@ -18,7 +18,7 @@
           <el-dropdown @command="handleCommand">
             <div class="user-dropdown">
               <el-avatar :size="32" :icon="UserFilled" />
-              <span class="username">管理员</span>
+              <span class="username">{{ displayName }}</span>
               <el-icon class="el-icon--right">
                 <arrow-down />
               </el-icon>
@@ -118,7 +118,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { 
   Location, 
   Document, 
-  User, 
   DataAnalysis, 
   Fold, 
   Expand, 
@@ -126,11 +125,15 @@ import {
   UserFilled,
   ArrowDown
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { clearUser, useUserStore } from '@/utils/userStore'
 
 const route = useRoute()
 const router = useRouter()
 const isAuthPage = computed(() => ['/login', '/register'].includes(route.path))
 const collapsed = ref(false)
+const { username } = useUserStore()
+const displayName = computed(() => username.value || '管理员')
 
 function toggleCollapsed() {
   collapsed.value = !collapsed.value
@@ -139,10 +142,10 @@ function toggleCollapsed() {
 function handleCommand(command) {
   switch (command) {
     case 'profile':
-      // 处理个人资料
+      router.push('/profile')
       break
     case 'settings':
-      // 处理设置
+      ElMessage.info('设置功能开发中')
       break
     case 'logout':
       logout()
@@ -152,6 +155,7 @@ function handleCommand(command) {
 
 function logout() {
   localStorage.removeItem('loggedIn')
+  clearUser()
   router.push('/login')
 }
 </script>

@@ -9,7 +9,20 @@
     <select id="findByUsername" parameterType="String" resultType="com.geoweb.demo.entity.User">
         SELECT id, username, password, email, create_time as createTime FROM user WHERE username = #{username}
     </select>
+    <select id="findById" parameterType="Integer" resultType="com.geoweb.demo.entity.User">
+        SELECT id, username, password, email, create_time as createTime FROM user WHERE id = #{id}
+    </select>
     <select id="findAll" resultType="com.geoweb.demo.entity.User">
         SELECT id, username, password, email, create_time as createTime FROM user
     </select>
+    <update id="updateProfile" parameterType="com.geoweb.demo.entity.User">
+        UPDATE user
+        SET username = #{username}, email = #{email}
+        WHERE id = #{id}
+    </update>
+    <update id="updatePassword">
+        UPDATE user
+        SET password = #{password}
+        WHERE id = #{id}
+    </update>
 </mapper> 

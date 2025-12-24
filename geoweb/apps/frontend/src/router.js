@@ -7,6 +7,7 @@ import MapData from './views/MapData.vue'
 import BoreholeEllipticity from './views/BoreholeEllipticity.vue'
 import StressInversion from './views/StressInversion.vue'
 import DataAugmentation from './views/DataAugmentation.vue'
+import Profile from './views/Profile.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -14,6 +15,7 @@ const routes = [
   { path: '/register', component: Register },
   { path: '/map', component: MapData },
   { path: '/user', component: User },
+  { path: '/profile', component: Profile },
   { path: '/csv', component: CsvSum },
   { path: '/borehole', component: BoreholeEllipticity },
   { path: '/stressinv', component: StressInversion },

@@ -21,3 +21,15 @@ export function deleteUser(id) {
 }
 
 export const addUser = registerUser; 
+
+export function getUserProfile(username) {
+  return request.get('/user/profile', { params: { username } })
+}
+
+export function updateUserProfile(data) {
+  return request.put('/user/profile', data)
+}
+
+export function updateUserPassword(data) {
+  return request.put('/user/password', data)
+}

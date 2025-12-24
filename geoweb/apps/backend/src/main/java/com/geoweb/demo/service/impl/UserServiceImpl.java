@@ -34,4 +34,24 @@ public class UserServiceImpl implements UserService {
         }
         return null;
     }
-} 
+
+    @Override
+    public User findByUsername(String username) {
+        return userMapper.findByUsername(username);
+    }
+
+    @Override
+    public User findById(Integer id) {
+        return userMapper.findById(id);
+    }
+
+    @Override
+    public boolean updateProfile(User user) {
+        return userMapper.updateProfile(user) > 0;
+    }
+
+    @Override
+    public boolean updatePassword(Integer id, String password) {
+        return userMapper.updatePassword(id, password) > 0;
+    }
+}
