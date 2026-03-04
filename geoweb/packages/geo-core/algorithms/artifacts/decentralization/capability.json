@@ -1,0 +1,20 @@
+{
+  "algo_id": "artifact.decentralization.v1",
+  "handles_artifact_types": ["decentralization"],
+  "input_requirements": {
+    "resolution_range": "2D/3D image arrays",
+    "noise_level": "any",
+    "requires_depth_metadata": false,
+    "supported_layouts": ["HW", "HWC", "CHW"]
+  },
+  "output_characteristics": {
+    "edge_preservation": "method-dependent",
+    "smoothing_tendency": "method-dependent",
+    "methods": ["harmonic", "azimuth_equalization", "agc"]
+  },
+  "cost_profile": {
+    "runtime": "medium",
+    "memory": "medium",
+    "device": "cpu"
+  }
+}

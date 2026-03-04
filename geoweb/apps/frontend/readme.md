@@ -13,3 +13,4 @@ Contents
 Notes
 - Dev server defaults to port 5173.
 - node_modules is generated.
+- Includes ATV Agent page at route `/agent` (chat + upload + result preview/download).

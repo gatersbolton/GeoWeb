@@ -1,0 +1,18 @@
+{
+  "algo_id": "enhancement.super_resolution.v1",
+  "handles_artifact_types": [],
+  "input_requirements": {
+    "resolution_range": "any",
+    "noise_level": "any",
+    "requires_depth_metadata": false
+  },
+  "output_characteristics": {
+    "edge_preservation": "neutral",
+    "smoothing_tendency": "neutral"
+  },
+  "cost_profile": {
+    "runtime": "low",
+    "memory": "low",
+    "device": "cpu"
+  }
+}

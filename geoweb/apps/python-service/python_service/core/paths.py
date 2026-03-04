@@ -52,12 +52,12 @@ def ensure_stressinv_path() -> None:
 
 
 def geo_core_artifacts_dir() -> str:
-    """Return path to 'packages/geo-core/artifacts' directory."""
-    return os.path.join(repo_root(), 'packages', 'geo-core', 'artifacts')
+    """Return path to legacy geo-core source-code directory."""
+    return os.path.join(repo_root(), 'packages', 'geo-core', 'source-code')
 
 
 def stick_pull_dir() -> str:
-    """Return path to 'packages/geo-core/artifacts/stick-and-pull' directory."""
+    """Return path to legacy 'stick-and-pull' source implementation directory."""
     return os.path.join(geo_core_artifacts_dir(), 'stick-and-pull')
 
 
@@ -75,4 +75,20 @@ def ensure_stick_pull_path() -> None:
 
 # Ensure path immediately on import for stick-and-pull helpers
 ensure_stick_pull_path()
+
+
+def geo_core_package_dir() -> str:
+    """Return path to 'packages/geo-core' package root."""
+    return os.path.join(repo_root(), 'packages', 'geo-core')
+
+
+def ensure_geo_core_path() -> None:
+    """Ensure geo-core package root is in sys.path so 'algorithms' can be imported."""
+    target = os.path.normpath(geo_core_package_dir())
+    if target not in sys.path:
+        sys.path.append(target)
+
+
+# Ensure path immediately on import for geo-core algorithm framework.
+ensure_geo_core_path()
 

@@ -7,7 +7,12 @@ geoweb/
     compute/
       borehole-ellipticity/  # 现有 python/Borehole ellipticity
       stress-inversion/      # 现有 python/BoreholeEllipStressInv
-    geo-core/                # 领域模型/通用算法（如坐标、地层、井眼描述）
+    geo-core/                # 领域模型/通用算法（含 ATV 去伪影与 Agent）
+      algorithms/
+        artifacts/           # 去伪影算法（stick_pull/decentralization）
+        enhancement/         # 增强算法（super_resolution）
+        agents/              # ATV 专家 Agent（recommend/chat/tool registry）
+        api/                 # FastAPI 路由（jobs/algorithms/agent）
     shared-utils/            # 语言无关工具（校验规则、常量、示例数据格式）
   libs/
     python/                  # 可复用 Python 库（供 python-service & compute 调用）

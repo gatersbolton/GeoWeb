@@ -1,0 +1,16 @@
+safe:
+  enable: true
+  speed_profile_csv: null
+  speed_column: null
+  fallback_to_identity_on_error: true
+advanced:
+  power: 1.6
+  q_clip_low: 2.0
+  q_clip_high: 98.0
+  smooth_window: 31
+  valid_threshold: 0.02
+  min_valid_fraction: 0.75
+experimental:
+  enable_preview_assets: false
+  preview_image_ext: png
+  save_speed_profile_csv: false

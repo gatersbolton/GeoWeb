@@ -1,0 +1,62 @@
+{
+  "method": "azimuth_equalization",
+  "input": "C:\\Users\\gater\\Desktop\\study\\USTC\\IAT\\GeoWeb\\geoweb\\packages\\geo-core\\algorithms\\artifacts\\decentralization\\decentralization_test.png",
+  "config": {
+    "safe": {
+      "enable": true,
+      "method": "azimuth_equalization",
+      "fallback_to_identity_on_error": true
+    },
+    "advanced": {
+      "harmonic_orders": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "harmonic_depth_smooth_window": 15,
+      "harmonic_preserve_row_mean": true,
+      "harmonic_strength": 1.0,
+      "equalization_depth_window": 101,
+      "equalization_stat": "median",
+      "equalization_mode": "multiplicative",
+      "equalization_epsilon": 1e-06,
+      "equalization_clip_gain_min": 0.3,
+      "equalization_clip_gain_max": 2.8,
+      "equalization_strength": 1.0,
+      "equalization_preserve_row_mean": true,
+      "agc_window": 41,
+      "agc_axis": "azimuth",
+      "agc_target_rms": 1.0,
+      "agc_epsilon": 1e-06,
+      "agc_clip_gain_min": 0.4,
+      "agc_clip_gain_max": 2.2,
+      "agc_strength": 1.0,
+      "agc_preserve_row_mean": true,
+      "column_debias_strength": 1.0,
+      "column_debias_stat": "median",
+      "column_debias_smooth_window": 1,
+      "column_debias_preserve_row_mean": true
+    },
+    "experimental": {
+      "enable_preview_assets": true,
+      "preview_image_ext": "png"
+    }
+  },
+  "output_files": {
+    "original": "C:\\Users\\gater\\Desktop\\study\\USTC\\IAT\\GeoWeb\\geoweb\\packages\\geo-core\\datasets\\processed\\manual_decentralization_visual\\azimuth_equalization\\original.png",
+    "fixed": "C:\\Users\\gater\\Desktop\\study\\USTC\\IAT\\GeoWeb\\geoweb\\packages\\geo-core\\datasets\\processed\\manual_decentralization_visual\\azimuth_equalization\\fixed.png",
+    "compare_side_by_side": "C:\\Users\\gater\\Desktop\\study\\USTC\\IAT\\GeoWeb\\geoweb\\packages\\geo-core\\datasets\\processed\\manual_decentralization_visual\\azimuth_equalization\\compare_side_by_side.png",
+    "diff_abs": "C:\\Users\\gater\\Desktop\\study\\USTC\\IAT\\GeoWeb\\geoweb\\packages\\geo-core\\datasets\\processed\\manual_decentralization_visual\\azimuth_equalization\\diff_abs.png"
+  },
+  "quality_metrics": {
+    "mean_abs_delta": 48.982566833496094,
+    "bias_before": 0.37612734715339297,
+    "bias_after": 0.003678480046269296,
+    "bias_reduction": 0.9902174880619442
+  },
+  "warnings": [],
+  "preview_assets": [
+    "C:\\Users\\gater\\Desktop\\study\\USTC\\IAT\\GeoWeb\\geoweb\\packages\\geo-core\\datasets\\processed\\manual_decentralization_visual\\azimuth_equalization\\job_manual_decentralization_azimuth_equalization_step_1_artifact.decentralization.v1.png"
+  ]
+}

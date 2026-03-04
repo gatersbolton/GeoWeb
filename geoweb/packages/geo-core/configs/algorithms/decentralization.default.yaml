@@ -1,0 +1,32 @@
+safe:
+  enable: true
+  method: harmonic
+  fallback_to_identity_on_error: true
+advanced:
+  harmonic_orders: [1, 2, 3, 4]
+  harmonic_depth_smooth_window: 15
+  harmonic_preserve_row_mean: true
+  harmonic_strength: 1.0
+  equalization_depth_window: 121
+  equalization_stat: median
+  equalization_mode: multiplicative
+  equalization_epsilon: 1.0e-6
+  equalization_clip_gain_min: 0.4
+  equalization_clip_gain_max: 2.2
+  equalization_strength: 1.0
+  equalization_preserve_row_mean: true
+  agc_window: 41
+  agc_axis: azimuth
+  agc_target_rms: 1.0
+  agc_epsilon: 1.0e-6
+  agc_clip_gain_min: 0.4
+  agc_clip_gain_max: 2.2
+  agc_strength: 1.0
+  agc_preserve_row_mean: true
+  column_debias_strength: 0.8
+  column_debias_stat: median
+  column_debias_smooth_window: 1
+  column_debias_preserve_row_mean: true
+experimental:
+  enable_preview_assets: false
+  preview_image_ext: png

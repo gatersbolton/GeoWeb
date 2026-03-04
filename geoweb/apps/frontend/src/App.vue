@@ -84,6 +84,9 @@
               <el-menu-item index="/stressinv" class="vben-menu-item-sub">
                 <span>地应力反演项目</span>
               </el-menu-item>
+              <el-menu-item index="/agent" class="vben-menu-item-sub">
+                <span>ATV智能Agent</span>
+              </el-menu-item>
               <el-menu-item index="/augmentation" class="vben-menu-item-sub">
                 <span>数据增强项目</span>
               </el-menu-item>

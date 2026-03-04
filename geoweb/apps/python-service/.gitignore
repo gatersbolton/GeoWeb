@@ -1,0 +1,7 @@
+.env.agent.local
+logs/
+python_service/__pycache__/
+python_service/api/__pycache__/
+python_service/core/__pycache__/
+python_service/services/__pycache__/
+python_service/thirdparty/__pycache__/

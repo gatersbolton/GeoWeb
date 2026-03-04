@@ -8,6 +8,7 @@ import BoreholeEllipticity from './views/BoreholeEllipticity.vue'
 import StressInversion from './views/StressInversion.vue'
 import DataAugmentation from './views/DataAugmentation.vue'
 import Profile from './views/Profile.vue'
+import AgentAssistant from './views/AgentAssistant.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -20,6 +21,7 @@ const routes = [
   { path: '/borehole', component: BoreholeEllipticity },
   { path: '/stressinv', component: StressInversion },
   { path: '/augmentation', component: DataAugmentation },
+  { path: '/agent', component: AgentAssistant },
 ]
 
 const router = createRouter({

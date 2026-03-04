@@ -1,0 +1,6 @@
+safe:
+  enable: true
+advanced:
+  upscale_ratio: 1.0
+experimental:
+  use_tile_mode: false
