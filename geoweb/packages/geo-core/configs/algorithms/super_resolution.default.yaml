@@ -1,6 +1,17 @@
 safe:
   enable: true
+  model_name: RealESRGAN_x4plus
+  fallback_to_identity_on_error: false
 advanced:
-  upscale_ratio: 1.0
+  outscale: 1.0
+  tile: 0
+  tile_pad: 10
+  pre_pad: 0
+  alpha_upsampler: realesrgan
+  prefer_device: auto
+  gpu_id: null
+  use_fp32: false
+  model_path: null
 experimental:
-  use_tile_mode: false
+  save_preview_assets: false
+  preview_image_ext: png

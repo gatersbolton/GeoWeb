@@ -89,7 +89,7 @@ class ATVExpertAgentService:
             if request.recommend is not None and not recommend_request.user_prompt.strip():
                 recommend_request.user_prompt = request.message
             recommendation = self.recommend(recommend_request)
-            used_tools.append("tool:recommend_artifact_pipeline")
+            used_tools.append("tool:recommend_pipeline")
 
         if not self._llm.is_enabled:
             answer = _fallback_answer(request.message, recommendation)
@@ -215,6 +215,10 @@ def _looks_like_recommendation_request(message: str) -> bool:
         "decentralization",
         "算法",
         "pipeline",
+        "增强",
+        "超分",
+        "super resolution",
+        "enhance",
         "裂隙",
         "崩落",
     ]
@@ -258,8 +262,8 @@ def _fallback_answer(
         token in text for token in ("能做什么", "可以做什么", "怎么用", "帮助")
     ):
         return (
-            "我目前支持：1) 去伪影算法推荐；2) 图像上传后自动执行 pipeline；"
-            f"3) 返回结果预览与下载。你可以先发一条目标描述，例如“去除去中心化伪影”。{error_tip}"
+            "我目前支持：1) 去伪影算法推荐；2) 图像增强/超分；3) 图像上传后自动执行 pipeline；"
+            f"4) 返回结果预览与下载。你可以先发一条目标描述，例如“去除去中心化伪影”或“做 4 倍超分增强”。{error_tip}"
         )
 
     if any(token in lower for token in ("thanks", "thank you")) or any(

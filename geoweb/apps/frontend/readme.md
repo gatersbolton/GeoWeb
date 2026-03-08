@@ -13,4 +13,5 @@ Contents
 Notes
 - Dev server defaults to port 5173.
 - node_modules is generated.
-- Includes ATV Agent page at route `/agent` (chat + upload + result preview/download).
+- Frontend brand is "钻孔声成像测井智能分析系统".
+- Includes ATV智脑 page at route `/agent` (chat + upload + result preview/download).

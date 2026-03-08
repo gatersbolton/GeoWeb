@@ -4,15 +4,19 @@
   "input_requirements": {
     "resolution_range": "any",
     "noise_level": "any",
-    "requires_depth_metadata": false
+    "requires_depth_metadata": false,
+    "data_layouts": ["HW", "HWC", "CHW"],
+    "supported_value_ranges": ["[0,1]", "[0,255]", "arbitrary numeric"]
   },
   "output_characteristics": {
-    "edge_preservation": "neutral",
-    "smoothing_tendency": "neutral"
+    "edge_preservation": "high",
+    "smoothing_tendency": "low",
+    "supports_arbitrary_outscale": true,
+    "default_outscale": 1.0
   },
   "cost_profile": {
-    "runtime": "low",
-    "memory": "low",
-    "device": "cpu"
+    "runtime": "medium",
+    "memory": "medium",
+    "device": "cpu/cuda"
   }
 }

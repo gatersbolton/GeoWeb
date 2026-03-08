@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from algorithms.agents.contracts import AgentRecommendRequest, AgentRecommendResponse, CandidateScore
@@ -34,9 +35,20 @@ _ENHANCEMENT_HINTS = (
     "enhancement",
     "super resolution",
     "super-resolution",
+    "upscale",
+    "超分",
+    "放大",
     "清晰",
     "锐化",
     "增强",
+)
+_ENHANCEMENT_ONLY_HINTS = (
+    "only enhance",
+    "enhancement only",
+    "只增强",
+    "仅增强",
+    "只做增强",
+    "只做超分",
 )
 _DISABLE_ENHANCEMENT_HINTS = ("不要增强", "不做增强", "no enhancement", "without enhancement")
 _METHOD_HINTS = {
@@ -44,6 +56,10 @@ _METHOD_HINTS = {
     "azimuth_equalization": ("azimuth_equalization", "equalization", "均衡", "均衡化"),
     "agc": ("agc", "自动增益", "增益控制"),
 }
+_OUTSCALE_PATTERNS = (
+    re.compile(r"(?<![a-z0-9])(\d+(?:\.\d+)?)\s*(?:x|倍)", re.IGNORECASE),
+    re.compile(r"(?<![a-z0-9])x\s*(\d+(?:\.\d+)?)", re.IGNORECASE),
+)
 
 
 def _model_dump(model: CandidateScore) -> dict[str, Any]:
@@ -57,8 +73,10 @@ def infer_prompt_hints(prompt: str) -> dict[str, Any]:
     if not text:
         return {
             "artifact_tags": [],
+            "enhancement_only": False,
             "include_enhancement": None,
             "prefer_decentralization_method": None,
+            "requested_outscale": None,
             "matched_tokens": {},
         }
 
@@ -85,6 +103,18 @@ def infer_prompt_hints(prompt: str) -> dict[str, Any]:
         include_enhancement = False
         matched_tokens["enhancement_disabled"] = disable_enhancement_hits
 
+    enhancement_only = False
+    enhancement_only_hits = [token for token in _ENHANCEMENT_ONLY_HINTS if token in text]
+    if enhancement_only_hits:
+        enhancement_only = True
+        matched_tokens["enhancement_only"] = enhancement_only_hits
+    elif enhancement_hits and not artifact_tags:
+        enhancement_only = True
+
+    requested_outscale = _extract_requested_outscale(text, enhancement_hits)
+    if requested_outscale is not None:
+        matched_tokens["requested_outscale"] = [str(requested_outscale)]
+
     prefer_decentralization_method = None
     for method, tokens in _METHOD_HINTS.items():
         hits = [token for token in tokens if token in text]
@@ -95,8 +125,10 @@ def infer_prompt_hints(prompt: str) -> dict[str, Any]:
 
     return {
         "artifact_tags": sorted(artifact_tags),
+        "enhancement_only": enhancement_only and include_enhancement is not False,
         "include_enhancement": include_enhancement,
         "prefer_decentralization_method": prefer_decentralization_method,
+        "requested_outscale": requested_outscale,
         "matched_tokens": matched_tokens,
     }
 
@@ -136,6 +168,7 @@ def _candidate_score(
     capability: dict[str, Any],
     tags: list[str],
     include_enhancement: bool,
+    enhancement_only: bool,
     request: AgentRecommendRequest,
 ) -> CandidateScore:
     handles = set(capability.get("handles_artifact_types", []))
@@ -157,6 +190,12 @@ def _candidate_score(
         else:
             score -= 0.2
             reason_parts.append("enhancement disabled")
+        if enhancement_only:
+            score += 0.2
+            reason_parts.append("enhancement-only request")
+    elif enhancement_only:
+        score -= 0.15
+        reason_parts.append("artifact step deprioritized for enhancement-only request")
 
     cost_profile = capability.get("cost_profile", {})
     runtime = str(cost_profile.get("runtime", "medium")).lower()
@@ -180,13 +219,17 @@ def _build_pipeline(
     *,
     tags: list[str],
     include_enhancement: bool,
+    enhancement_only: bool,
     max_pipeline_steps: int,
     registry: AlgorithmRegistry,
 ) -> list[str]:
     available = set(registry.list_algo_ids())
     pipeline: list[str] = []
 
-    if tags:
+    if enhancement_only:
+        if include_enhancement and DEFAULT_ENHANCEMENT_ALGO in available:
+            pipeline.append(DEFAULT_ENHANCEMENT_ALGO)
+    elif tags:
         for tag in KNOWN_ARTIFACT_TAGS:
             if tag not in tags:
                 continue
@@ -198,7 +241,11 @@ def _build_pipeline(
             if algo_id in available and algo_id not in pipeline:
                 pipeline.append(algo_id)
 
-    if include_enhancement and DEFAULT_ENHANCEMENT_ALGO in available:
+    if (
+        include_enhancement
+        and DEFAULT_ENHANCEMENT_ALGO in available
+        and DEFAULT_ENHANCEMENT_ALGO not in pipeline
+    ):
         pipeline.append(DEFAULT_ENHANCEMENT_ALGO)
 
     if not pipeline:
@@ -215,6 +262,7 @@ def _build_recommended_configs(
     pipeline: list[str],
     registry: AlgorithmRegistry,
     prefer_decentralization_method: str | None,
+    requested_outscale: float | None,
 ) -> dict[str, dict[str, Any]]:
     recommended_configs: dict[str, dict[str, Any]] = {}
     for algo_id in pipeline:
@@ -224,6 +272,11 @@ def _build_recommended_configs(
             safe_cfg["method"] = prefer_decentralization_method
             config = dict(config)
             config["safe"] = safe_cfg
+        if algo_id == DEFAULT_ENHANCEMENT_ALGO and requested_outscale is not None:
+            advanced_cfg = dict(config.get("advanced", {}))
+            advanced_cfg["outscale"] = requested_outscale
+            config = dict(config)
+            config["advanced"] = advanced_cfg
         recommended_configs[algo_id] = config
     return recommended_configs
 
@@ -232,7 +285,9 @@ def recommend(request: AgentRecommendRequest, registry: AlgorithmRegistry) -> Ag
     prompt_hints = infer_prompt_hints(request.user_prompt)
     tags = _merge_tags(request.artifact_tags, prompt_hints["artifact_tags"])
     include_enhancement = _resolve_include_enhancement(request, prompt_hints)
+    enhancement_only = bool(prompt_hints["enhancement_only"]) and not tags
     method = _resolve_decentralization_method(request, prompt_hints)
+    requested_outscale = prompt_hints["requested_outscale"]
 
     candidates = [
         _candidate_score(
@@ -240,6 +295,7 @@ def recommend(request: AgentRecommendRequest, registry: AlgorithmRegistry) -> Ag
             capability=descriptor.capability,
             tags=tags,
             include_enhancement=include_enhancement,
+            enhancement_only=enhancement_only,
             request=request,
         )
         for descriptor in registry.list_descriptors()
@@ -249,6 +305,7 @@ def recommend(request: AgentRecommendRequest, registry: AlgorithmRegistry) -> Ag
     pipeline = _build_pipeline(
         tags=tags,
         include_enhancement=include_enhancement,
+        enhancement_only=enhancement_only,
         max_pipeline_steps=request.max_pipeline_steps,
         registry=registry,
     )
@@ -256,6 +313,7 @@ def recommend(request: AgentRecommendRequest, registry: AlgorithmRegistry) -> Ag
         pipeline=pipeline,
         registry=registry,
         prefer_decentralization_method=method,
+        requested_outscale=requested_outscale,
     )
 
     decision_log = {
@@ -269,14 +327,16 @@ def recommend(request: AgentRecommendRequest, registry: AlgorithmRegistry) -> Ag
         },
         "prompt_hints": prompt_hints,
         "effective_tags": tags,
+        "enhancement_only": enhancement_only,
         "include_enhancement": include_enhancement,
+        "requested_outscale": requested_outscale,
         "candidate_scores": [_model_dump(candidate) for candidate in candidates],
         "final_choice_reason": "rule-based routing with prompt keyword parsing",
         "parameter_basis": "algorithm default configs + prompt hints",
     }
 
     follow_up_question = None
-    if not tags and request.user_prompt.strip():
+    if not tags and request.user_prompt.strip() and not enhancement_only:
         follow_up_question = "可补充伪影类型（stick_pull/decentralization）或样本特征，以提高推荐准确度。"
 
     return AgentRecommendResponse(
@@ -287,3 +347,19 @@ def recommend(request: AgentRecommendRequest, registry: AlgorithmRegistry) -> Ag
         policy_used="rules",
         follow_up_question=follow_up_question,
     )
+
+
+def _extract_requested_outscale(text: str, enhancement_hits: list[str]) -> float | None:
+    if not enhancement_hits and "倍" not in text:
+        return None
+    for pattern in _OUTSCALE_PATTERNS:
+        match = pattern.search(text)
+        if not match:
+            continue
+        try:
+            value = float(match.group(1))
+        except (TypeError, ValueError):
+            continue
+        if 1.0 <= value <= 8.0:
+            return value
+    return None

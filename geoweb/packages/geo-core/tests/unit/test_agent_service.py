@@ -55,3 +55,15 @@ def test_service_chat_smalltalk_without_llm_does_not_force_recommendation() -> N
     assert response.recommendation is None
     assert response.decision_log["llm_used"] is False
     assert "ATV" in response.answer
+
+
+def test_service_chat_enhancement_prompt_without_llm_returns_enhancement_pipeline() -> None:
+    registry = build_default_registry()
+    tools = build_default_tool_registry(registry)
+    llm = _FakeLLMClient("", enabled=False)
+    service = ATVExpertAgentService(registry, tool_registry=tools, llm_client=llm)
+    response = service.chat(AgentChatRequest(message="请直接做 4 倍超分增强"))
+    assert response.recommendation is not None
+    assert response.recommendation.recommended_pipeline == ["enhancement.super_resolution.v1"]
+    config = response.recommendation.recommended_configs["enhancement.super_resolution.v1"]
+    assert config["advanced"]["outscale"] == 4.0

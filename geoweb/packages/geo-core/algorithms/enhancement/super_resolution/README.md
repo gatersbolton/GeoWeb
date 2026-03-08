@@ -1,6 +1,8 @@
 # super_resolution
 
-Placeholder implementation for `enhancement.super_resolution.v1`.
+Real-ESRGAN-backed implementation for `enhancement.super_resolution.v1`.
 
-- Current behavior: identity pass-through (`input == output`)
-- Future work: replace `algorithm.py` `run()` body with real image enhancement.
+- Unified input contract: `InputFrame.data` uses `numpy.ndarray(float32)` with `HW/HWC/CHW`.
+- Unified output contract: returns `OutputFrame.result` as `float32`, preserves declared `value_range`, and can emit preview assets.
+- Local source dependency: wraps `packages/geo-core/source-code/Real-ESRGAN`.
+- Default behavior keeps output size unchanged with `advanced.outscale=1.0`; Agent or API can request larger scales like `2.0` or `4.0`.

@@ -24,6 +24,8 @@ from algorithms.agents.contracts import AgentChatMessage, AgentChatRequest, Agen
 from algorithms.api.runtime import AGENT_SERVICE, REGISTRY
 from algorithms.core.data_models import InputFrame, PipelineStep, RunContext
 from algorithms.core.pipeline import PipelineExecutor
+from algorithms.core.utils.io import build_output_filename, save_npz
+from algorithms.core.utils.metadata import build_minimal_metadata
 
 router = APIRouter()
 
@@ -136,10 +138,18 @@ def _looks_like_recommendation_prompt(message: str) -> bool:
             "stick pull",
             "stick-and-pull",
             "artifact",
+            "enhance",
+            "enhancement",
+            "super resolution",
+            "super-resolution",
+            "upscale",
         )
     ):
         return True
-    if any(token in text for token in ("推荐", "去伪影", "算法", "流程", "去中心", "偏心", "拉伸", "拖拽")):
+    if any(
+        token in text
+        for token in ("推荐", "去伪影", "算法", "流程", "去中心", "偏心", "拉伸", "拖拽", "增强", "超分", "放大")
+    ):
         return True
     return False
 
@@ -176,13 +186,18 @@ def _save_agent_outputs(
     recommendation: dict[str, Any],
     chat_response: dict[str, Any],
     step_reports: list[dict[str, Any]],
-) -> dict[str, str]:
+    source_meta: dict[str, Any],
+) -> dict[str, dict[str, str]]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    png_name = "agent_output.png"
-    npz_name = "agent_output.npz"
-    report_name = "agent_report.json"
-    rec_name = "agent_recommendation.json"
+    final_step = step_reports[-1] if step_reports else {}
+    final_algo_id = str(final_step.get("algo_id", "agent"))
+    final_step_index = max(len(step_reports), 1)
+
+    png_name = build_output_filename(session_id, final_step_index, final_algo_id, "png")
+    npz_name = build_output_filename(session_id, final_step_index, final_algo_id, "npz")
+    report_name = f"job_{session_id}_run_report.json"
+    rec_name = f"job_{session_id}_recommendation.json"
 
     png_path = output_dir / png_name
     npz_path = output_dir / npz_name
@@ -190,7 +205,14 @@ def _save_agent_outputs(
     rec_path = output_dir / rec_name
 
     Image.fromarray(_to_png_uint8(result_array)).save(png_path)
-    np.savez_compressed(npz_path, data=np.asarray(result_array, dtype=np.float32))
+    metadata = build_minimal_metadata(
+        job_id=session_id,
+        created_by="agent-chat",
+        service_version="python-service.agent.v1",
+        source_meta=source_meta,
+    )
+    metadata["algo_chain"] = [step.get("algo_id") for step in step_reports if step.get("algo_id")]
+    save_npz(npz_path, np.asarray(result_array, dtype=np.float32), metadata)
     report_path.write_text(
         json.dumps(
             {
@@ -207,10 +229,10 @@ def _save_agent_outputs(
     rec_path.write_text(json.dumps(recommendation, ensure_ascii=False, indent=2), encoding="utf-8")
 
     return {
-        "image": str(png_path),
-        "npz": str(npz_path),
-        "report": str(report_path),
-        "recommendation": str(rec_path),
+        "image": {"name": png_name, "path": str(png_path)},
+        "npz": {"name": npz_name, "path": str(npz_path)},
+        "report": {"name": report_name, "path": str(report_path)},
+        "recommendation": {"name": rec_name, "path": str(rec_path)},
     }
 
 
@@ -328,7 +350,12 @@ async def agent_chat(
             data=image_data,
             data_layout=layout,
             value_range=[0.0, 255.0],
-            source_meta={"filename": input_name, "input_format": "image"},
+            source_meta={
+                "filename": input_name,
+                "input_format": "image",
+                "original_file_uri": str(input_path),
+                "preprocess_ops": [],
+            },
             artifact_tags=tags,
         )
 
@@ -364,6 +391,14 @@ async def agent_chat(
             recommendation=recommendation,
             chat_response=response_payload,
             step_reports=step_reports,
+            source_meta=frame.source_meta,
+        )
+
+        response_payload["used_tools"] = list(
+            dict.fromkeys(
+                list(response_payload.get("used_tools", []))
+                + [f"algo:{step.algo_id}" for step in steps]
+            )
         )
 
         calculation_results[session_id] = {
@@ -388,10 +423,10 @@ async def agent_chat(
             },
             "output_image": _to_data_url_png(final_array),
             "download_urls": {
-                "image": f"/api/agent/download/{session_id}/agent_output.png",
-                "npz": f"/api/agent/download/{session_id}/agent_output.npz",
-                "report": f"/api/agent/download/{session_id}/agent_report.json",
-                "recommendation": f"/api/agent/download/{session_id}/agent_recommendation.json",
+                "image": f"/api/agent/download/{session_id}/{files['image']['name']}",
+                "npz": f"/api/agent/download/{session_id}/{files['npz']['name']}",
+                "report": f"/api/agent/download/{session_id}/{files['report']['name']}",
+                "recommendation": f"/api/agent/download/{session_id}/{files['recommendation']['name']}",
             },
         }
         return _json_response(response_payload)
@@ -409,10 +444,10 @@ async def download_agent_output(session_id: str, filename: str):
 
     files = data.get("files", {})
     allowed = {
-        "agent_output.png": files.get("image"),
-        "agent_output.npz": files.get("npz"),
-        "agent_report.json": files.get("report"),
-        "agent_recommendation.json": files.get("recommendation"),
+        files.get("image", {}).get("name"): files.get("image", {}).get("path"),
+        files.get("npz", {}).get("name"): files.get("npz", {}).get("path"),
+        files.get("report", {}).get("name"): files.get("report", {}).get("path"),
+        files.get("recommendation", {}).get("name"): files.get("recommendation", {}).get("path"),
     }
     path = allowed.get(filename)
     if not path or not os.path.exists(path):

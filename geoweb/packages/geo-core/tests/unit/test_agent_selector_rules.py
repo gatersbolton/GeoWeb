@@ -34,3 +34,18 @@ def test_recommend_applies_decentralization_method_hint() -> None:
     config = response.recommended_configs["artifact.decentralization.v1"]
     assert config["safe"]["method"] == "harmonic"
     assert "enhancement.super_resolution.v1" not in response.recommended_pipeline
+
+
+def test_recommend_routes_enhancement_only_prompt_to_super_resolution() -> None:
+    registry = build_default_registry()
+    response = recommend(
+        AgentRecommendRequest(
+            user_prompt="请直接做 4 倍超分增强",
+            artifact_tags=[],
+        ),
+        registry,
+    )
+    assert response.recommended_pipeline == ["enhancement.super_resolution.v1"]
+    config = response.recommended_configs["enhancement.super_resolution.v1"]
+    assert config["advanced"]["outscale"] == 4.0
+    assert response.follow_up_question is None

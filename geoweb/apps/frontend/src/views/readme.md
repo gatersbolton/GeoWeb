@@ -5,7 +5,7 @@ Page-level Vue views.
 ## New page
 
 - `AgentAssistant.vue`
-  - ChatGPT-style ATV assistant page.
+  - ATV智脑 page for conversational ATV image processing and interpretation.
   - Supports conversation, image upload, pipeline recommendation display.
   - Supports Markdown rendering (tables/lists/code blocks).
   - Shows processed preview image and download links from `/api/agent/chat`.

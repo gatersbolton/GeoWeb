@@ -7,7 +7,7 @@
 - `borehole.py`：钻孔椭圆度计算/可视化/进度接口。
 - `stressinv.py`：地应力反演接口。
 - `augmentation.py`：旧版 stick-and-pull 增强接口。
-- `agent.py`：ATV 专家 Agent（聊天、推荐、上传图像自动执行算法、结果下载）。
+- `agent.py`：ATV 专家 Agent（聊天、推荐、上传图像自动执行去伪影 / Real-ESRGAN 增强算法、结果下载）。
   - 新增 `/agent/runtime` 用于查看 LLM 在线状态和日志路径。
 
 ## Agent 执行链路
@@ -18,5 +18,11 @@
 1. 根据提示词推荐去伪影 pipeline。
 2. 调用 `packages/geo-core/algorithms` 中算法执行。
 3. 返回预览图与可下载结果文件。
+
+输出文件遵循 `geo-core` 统一约定：
+
+- 预览使用 PNG
+- 中间/归档结果使用 NPZ（含 metadata）
+- 文件名使用 `job_<job_id>_step_<n>_<algo_id>.<ext>`
 
 若本轮未重新上传图像，可传 `reuse_session_id` 复用上一次 Agent 执行会话中的图像。

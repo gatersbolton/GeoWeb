@@ -1,6 +1,7 @@
 <template>
   <div class="auth-container">
     <el-card class="auth-card" shadow="hover">
+      <div class="brand">钻孔声成像测井智能分析系统</div>
       <h2 class="title">欢迎回来</h2>
       <p class="subtitle">请登录以继续</p>
       <el-form :model="form" :rules="rules" ref="loginForm" label-position="top">
@@ -80,6 +81,14 @@ const goRegister = () => {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
+}
+
+.brand {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 12px;
 }
 
 .title {

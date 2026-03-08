@@ -33,6 +33,7 @@ def build_recommendation_messages(
             "algo_id": tool.algo_id,
             "handles": tool.handles,
             "description": tool.description,
+            "metadata": tool.metadata,
         }
         for tool in tools
     ]

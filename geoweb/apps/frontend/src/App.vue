@@ -44,7 +44,10 @@
               <Location />
             </el-icon>
           </div>
-          <div class="logo-text" v-show="!collapsed">GeoWeb</div>
+          <div class="logo-text" v-show="!collapsed">
+            <span>钻孔声成像测井</span>
+            <span>智能分析系统</span>
+          </div>
         </div>
         
         <div class="scrollbar scroll-container">
@@ -72,6 +75,11 @@
                 <span>CSV处理</span>
               </el-menu-item>
             </el-sub-menu>
+
+            <el-menu-item index="/agent" class="vben-menu-item">
+              <el-icon><ChatDotRound /></el-icon>
+              <span>ATV智脑</span>
+            </el-menu-item>
             
             <el-sub-menu index="analysis" class="vben-menu-submenu">
               <template #title>
@@ -83,9 +91,6 @@
               </el-menu-item>
               <el-menu-item index="/stressinv" class="vben-menu-item-sub">
                 <span>地应力反演项目</span>
-              </el-menu-item>
-              <el-menu-item index="/agent" class="vben-menu-item-sub">
-                <span>ATV智能Agent</span>
               </el-menu-item>
               <el-menu-item index="/augmentation" class="vben-menu-item-sub">
                 <span>数据增强项目</span>
@@ -120,7 +125,8 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { 
   Location, 
-  Document, 
+  Document,
+  ChatDotRound,
   DataAnalysis, 
   Fold, 
   Expand, 
@@ -269,7 +275,7 @@ function logout() {
 }
 
 .sidebar-logo {
-  height: 64px;
+  height: 84px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -288,8 +294,13 @@ function logout() {
 }
 
 .logo-text {
-  margin-left: 12px;
-  font-size: 18px;
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 132px;
+  font-size: 13px;
+  line-height: 1.3;
   font-weight: 600;
   color: #1890ff;
   transition: all 0.2s;

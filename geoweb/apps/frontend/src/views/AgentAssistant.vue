@@ -2,8 +2,8 @@
   <div class="agent-page">
     <aside class="agent-side">
       <div class="side-header">
-        <h2>ATV Agent</h2>
-        <p>智能去伪影与解释助手</p>
+        <h2>ATV智脑</h2>
+        <p>ATV 成像处理与解释助手</p>
       </div>
 
       <div class="quick-prompts">
@@ -43,8 +43,8 @@
     <section class="agent-main">
       <header class="chat-header">
         <div>
-          <h3>ATV 专家对话</h3>
-          <p>可上传 ATV 图像并让 Agent 自动调用去伪影算法</p>
+          <h3>ATV智脑</h3>
+          <p>面向钻孔声成像测井的对话式处理与解释助手</p>
         </div>
         <div class="header-actions">
           <el-tag :type="runtimeOnline ? 'success' : 'warning'" effect="dark">
@@ -109,7 +109,7 @@
                   size="small"
                   effect="plain"
                 >
-                  {{ algoId }}: Δ={{ toMetric(metric.mean_abs_delta) }}
+                  {{ algoId }}: {{ describeMetric(metric) }}
                 </el-tag>
               </div>
               <div
@@ -192,7 +192,7 @@
             type="textarea"
             :rows="3"
             resize="none"
-            placeholder="输入问题，例如：帮我给它去除去中心化的伪影，并给出参数建议"
+            placeholder="输入问题，例如：先去除偏心伪影，再做 4 倍超分增强"
             @keydown.enter.prevent.exact="sendMessage"
           />
           <el-button type="primary" :loading="sending" @click="sendMessage">
@@ -214,7 +214,7 @@ import DOMPurify from 'dompurify'
 const messages = ref([
   {
     role: 'assistant',
-    content: '我是 ATV 专家 Agent。你可以上传图像并告诉我需要处理的伪影类型，我会自动调用对应算法并返回结果。',
+    content: '我是 ATV智脑。你可以上传图像并告诉我需要去伪影、增强清晰度或做超分，我会自动调用对应算法并返回结果。',
   },
 ])
 const inputText = ref('')
@@ -231,6 +231,7 @@ const promptTemplates = [
   '帮我判断这张图像该用哪种去伪影算法',
   '帮我给它去除去中心化的伪影',
   '先做 stick_pull 去伪影，再做增强',
+  '直接做 4 倍超分增强',
 ]
 
 function applyPrompt(text) {
@@ -272,7 +273,7 @@ async function sendMessage() {
   try {
     sending.value = true
     const formData = new FormData()
-    formData.append('message', text || '请分析这张图像并给出去伪影建议')
+    formData.append('message', text || '请分析这张图像，并给出去伪影或增强建议')
     formData.append('history_json', JSON.stringify(historyPayload))
     formData.append('include_enhancement', String(includeEnhancement.value))
     formData.append('execute_on_upload', 'true')
@@ -335,6 +336,17 @@ function toMetric(value) {
   return value.toFixed(4)
 }
 
+function describeMetric(metric) {
+  if (!metric || typeof metric !== 'object') return '-'
+  if (typeof metric.sharpness_gain === 'number' && !Number.isNaN(metric.sharpness_gain)) {
+    return `sharpness x${toMetric(metric.sharpness_gain)}`
+  }
+  if (typeof metric.mean_abs_delta === 'number' && !Number.isNaN(metric.mean_abs_delta)) {
+    return `Δ=${toMetric(metric.mean_abs_delta)}`
+  }
+  return '-'
+}
+
 function extractWarnings(stepReports) {
   if (!Array.isArray(stepReports)) return []
   const warnings = []
@@ -352,7 +364,7 @@ function resetChat() {
   messages.value = [
     {
       role: 'assistant',
-      content: '新的对话已开始。你可以继续上传 ATV 图像并描述目标。',
+      content: '新的对话已开始。你可以继续上传 ATV 图像并描述去伪影、增强或超分目标。',
     },
   ]
   selectedFile.value = null

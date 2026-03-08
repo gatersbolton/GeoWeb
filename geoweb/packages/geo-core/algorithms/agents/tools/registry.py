@@ -38,6 +38,8 @@ def build_default_tool_registry(registry: AlgorithmRegistry) -> AgentToolRegistr
                 metadata={
                     "version": algo.version,
                     "cost_profile": capability.get("cost_profile", {}),
+                    "input_requirements": capability.get("input_requirements", {}),
+                    "output_characteristics": capability.get("output_characteristics", {}),
                 },
             )
         )
@@ -73,6 +75,9 @@ def _build_algorithm_description(algo_id: str, capability: dict) -> str:
     handles = capability.get("handles_artifact_types", [])
     output_chars = capability.get("output_characteristics", {})
     edge = output_chars.get("edge_preservation", "unknown")
+    arbitrary_outscale = output_chars.get("supports_arbitrary_outscale")
     if handles:
         return f"Supports {', '.join(handles)} artifact handling, edge_preservation={edge}."
+    if arbitrary_outscale:
+        return f"General enhancement algorithm, edge_preservation={edge}, arbitrary_outscale=yes."
     return f"General enhancement algorithm, edge_preservation={edge}."

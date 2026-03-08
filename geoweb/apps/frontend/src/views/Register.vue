@@ -1,7 +1,9 @@
 <template>
   <div class="auth-container">
     <el-card class="auth-card">
+      <div class="brand">钻孔声成像测井智能分析系统</div>
       <h2 class="title">注册</h2>
+      <p class="subtitle">创建账户以使用系统功能</p>
       <el-form :model="form" :rules="rules" ref="registerForm" label-width="80px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" autocomplete="off" />
@@ -74,10 +76,26 @@ const goLogin = () => {
 
 .auth-card {
   width: 360px;
+  padding: 28px 28px 20px;
+}
+
+.brand {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 10px;
 }
 
 .title {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  text-align: center;
+  margin: 0 0 20px;
+  color: #6b7280;
+  font-size: 14px;
 }
 </style> 
