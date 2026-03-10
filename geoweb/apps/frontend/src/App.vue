@@ -74,6 +74,9 @@
               <el-menu-item index="/csv" class="vben-menu-item-sub">
                 <span>CSV处理</span>
               </el-menu-item>
+              <el-menu-item index="/dlis" class="vben-menu-item-sub">
+                <span>DLIS可视化</span>
+              </el-menu-item>
             </el-sub-menu>
 
             <el-menu-item index="/agent" class="vben-menu-item">

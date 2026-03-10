@@ -50,12 +50,6 @@
           <el-tag :type="runtimeOnline ? 'success' : 'warning'" effect="dark">
             {{ runtimeOnline ? 'LLM在线' : 'LLM离线' }}
           </el-tag>
-          <el-switch
-            v-model="includeEnhancement"
-            inline-prompt
-            active-text="增强开"
-            inactive-text="增强关"
-          />
           <el-button @click="resetChat">新对话</el-button>
         </div>
       </header>
@@ -74,7 +68,18 @@
               class="bubble-content markdown-body"
               v-html="renderMarkdown(item.content)"
             />
-            <div v-else class="bubble-content user-plain">{{ item.content }}</div>
+            <template v-else>
+              <div class="bubble-content user-plain">{{ item.content }}</div>
+              <div v-if="item.attachmentName" class="user-attachment">
+                附件: {{ item.attachmentName }}
+              </div>
+              <img
+                v-if="item.previewImage"
+                :src="item.previewImage"
+                class="user-preview-image"
+                alt="Uploaded input preview"
+              />
+            </template>
             <div
               v-if="item.decisionLog?.llm_error"
               class="llm-error"
@@ -95,64 +100,86 @@
             </div>
 
             <div
-              v-if="item.execution?.executed && item.execution?.output_image"
+              v-if="item.execution?.executed && getExecutionOutputs(item.execution).length"
               class="output-panel"
             >
-              <div class="panel-label">执行结果预览</div>
-              <div v-if="item.execution?.image_source === 'reused'" class="reuse-tip">
-                本次执行复用了上一轮已上传图像。
+              <div class="panel-label">
+                {{ item.execution?.isSubtask ? '子任务结果' : '执行结果预览' }}
               </div>
-              <div class="metrics-row" v-if="item.execution?.quality_metrics">
-                <el-tag
-                  v-for="(metric, algoId) in item.execution.quality_metrics"
-                  :key="algoId"
-                  size="small"
-                  effect="plain"
-                >
-                  {{ algoId }}: {{ describeMetric(metric) }}
-                </el-tag>
+              <div v-if="item.execution?.image_source === 'reused'" class="reuse-tip">
+                本次执行复用了上一轮已上传输入。
               </div>
               <div
-                v-if="extractWarnings(item.execution?.step_reports).length"
-                class="warn-row"
+                v-for="output in getExecutionOutputs(item.execution)"
+                :key="`${output.step_index || 0}-${output.algo_id || output.title || 'result'}`"
+                class="result-card"
               >
-                <el-alert
-                  v-for="(warn, widx) in extractWarnings(item.execution?.step_reports)"
-                  :key="`${widx}-${warn}`"
-                  :title="warn"
-                  type="warning"
-                  :closable="false"
-                  show-icon
-                />
-              </div>
-              <img :src="item.execution.output_image" class="output-image" alt="Agent output" />
-              <div class="download-actions">
-                <el-button
-                  v-if="item.execution.download_urls?.image"
-                  type="primary"
-                  plain
-                  size="small"
-                  @click="download(item.execution.download_urls.image)"
-                >
-                  下载图片
-                </el-button>
-                <el-button
-                  v-if="item.execution.download_urls?.npz"
-                  type="success"
-                  plain
-                  size="small"
-                  @click="download(item.execution.download_urls.npz)"
-                >
-                  下载 NPZ
-                </el-button>
-                <el-button
-                  v-if="item.execution.download_urls?.report"
-                  plain
-                  size="small"
-                  @click="download(item.execution.download_urls.report)"
-                >
-                  下载报告
-                </el-button>
+                <div class="result-head">
+                  <div>
+                    <div class="result-title">{{ output.title || '执行结果' }}</div>
+                    <div v-if="output.summary" class="result-summary">{{ output.summary }}</div>
+                  </div>
+                  <el-tag v-if="output.algo_id" size="small" effect="plain">
+                    {{ output.algo_id }}
+                  </el-tag>
+                </div>
+                <div class="metrics-row" v-if="metricEntries(output, item.execution).length">
+                  <el-tag
+                    v-for="entry in metricEntries(output, item.execution)"
+                    :key="`${output.step_index || 0}-${entry.algoId}`"
+                    size="small"
+                    effect="plain"
+                  >
+                    {{ entry.algoId }}: {{ describeMetric(entry.metric) }}
+                  </el-tag>
+                </div>
+                <div v-if="Array.isArray(output.warnings) && output.warnings.length" class="warn-row">
+                  <el-alert
+                    v-for="(warn, widx) in output.warnings"
+                    :key="`${output.step_index || 0}-${widx}-${warn}`"
+                    :title="warn"
+                    type="warning"
+                    :closable="false"
+                    show-icon
+                  />
+                </div>
+                <img :src="output.output_image" class="output-image" alt="Agent output" />
+                <div class="download-actions">
+                  <el-button
+                    v-if="output.download_urls?.image"
+                    type="primary"
+                    plain
+                    size="small"
+                    @click="download(output.download_urls.image)"
+                  >
+                    下载图片
+                  </el-button>
+                  <el-button
+                    v-if="output.download_urls?.npz"
+                    type="success"
+                    plain
+                    size="small"
+                    @click="download(output.download_urls.npz)"
+                  >
+                    下载 NPZ
+                  </el-button>
+                  <el-button
+                    v-if="output.download_urls?.report"
+                    plain
+                    size="small"
+                    @click="download(output.download_urls.report)"
+                  >
+                    下载报告
+                  </el-button>
+                  <el-button
+                    v-if="output.download_urls?.recommendation"
+                    plain
+                    size="small"
+                    @click="download(output.download_urls.recommendation)"
+                  >
+                    下载推荐
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -164,10 +191,10 @@
           <el-upload
             :auto-upload="false"
             :show-file-list="false"
-            accept="image/*"
+            accept="image/*,.dlis"
             :on-change="onFileChange"
           >
-            <el-button plain>上传 ATV 图像</el-button>
+            <el-button plain>上传 ATV 图像或 DLIS 文件</el-button>
           </el-upload>
           <span class="file-label" v-if="selectedFile">{{ selectedFile.name }}</span>
           <el-button
@@ -182,7 +209,7 @@
             日志: {{ runtimeInfo.log_path }}
           </span>
           <span class="runtime-note" v-if="lastExecutionSessionId">
-            已缓存图像会话: {{ lastExecutionSessionId }}
+            已缓存输入会话: {{ lastExecutionSessionId }}
           </span>
         </div>
 
@@ -192,7 +219,7 @@
             type="textarea"
             :rows="3"
             resize="none"
-            placeholder="输入问题，例如：先去除偏心伪影，再做 4 倍超分增强"
+            placeholder="输入问题，例如：先去除槽沟或偏心伪影，再做 4 倍超分增强；或解析 DLIS 并生成玫瑰图"
             @keydown.enter.prevent.exact="sendMessage"
           />
           <el-button type="primary" :loading="sending" @click="sendMessage">
@@ -214,12 +241,11 @@ import DOMPurify from 'dompurify'
 const messages = ref([
   {
     role: 'assistant',
-    content: '我是 ATV智脑。你可以上传图像并告诉我需要去伪影、增强清晰度或做超分，我会自动调用对应算法并返回结果。',
+    content: '我是 ATV智脑。你可以上传 ATV 图像或 DLIS 文件，告诉我需要去除槽沟伪影、去除去中心化伪影、增强清晰度、做超分，或者解析 DLIS 通道并生成 ATV/玫瑰图，我会按步骤调用工具并逐步返回结果。',
   },
 ])
 const inputText = ref('')
 const selectedFile = ref(null)
-const includeEnhancement = ref(true)
 const sending = ref(false)
 const chatListRef = ref(null)
 const toolItems = ref([])
@@ -230,8 +256,11 @@ const lastExecutionSessionId = ref('')
 const promptTemplates = [
   '帮我判断这张图像该用哪种去伪影算法',
   '帮我给它去除去中心化的伪影',
+  '这张图有槽沟伪影，帮我用 GrooveMask 去掉',
   '先做 stick_pull 去伪影，再做增强',
   '直接做 4 倍超分增强',
+  '解析这个 DLIS 文件并列出主要通道',
+  '基于这个 DLIS 文件生成 ATV 图和玫瑰图',
 ]
 
 function applyPrompt(text) {
@@ -246,13 +275,122 @@ function clearFile() {
   selectedFile.value = null
 }
 
+function buildUserUploadPreview(file) {
+  if (!file || !String(file.type || '').startsWith('image/')) {
+    return ''
+  }
+  return URL.createObjectURL(file)
+}
+
 function toHistoryPayload() {
   return messages.value
-    .filter((item) => item.role === 'user' || item.role === 'assistant')
+    .filter((item) => (item.role === 'user' || item.role === 'assistant') && !item.excludeFromHistory)
     .map((item) => ({
       role: item.role,
       content: item.content,
     }))
+}
+
+function getExecutionOutputs(execution) {
+  if (Array.isArray(execution?.outputs) && execution.outputs.length) {
+    return execution.outputs
+  }
+  if (!execution?.output_image) {
+    return []
+  }
+  const pipeline = Array.isArray(execution?.pipeline) ? execution.pipeline : []
+  const lastAlgoId = pipeline[pipeline.length - 1] || 'result'
+  return [
+    {
+      step_index: Array.isArray(execution?.step_reports) ? execution.step_reports.length || 1 : 1,
+      algo_id: lastAlgoId,
+      title: '执行结果',
+      summary: '',
+      warnings: extractWarnings(execution?.step_reports),
+      output_image: execution.output_image,
+      download_urls: execution.download_urls || {},
+    },
+  ]
+}
+
+function metricEntries(output, execution) {
+  if (
+    output?.algo_id
+    && output?.quality_metrics
+    && typeof output.quality_metrics === 'object'
+    && Object.keys(output.quality_metrics).length
+  ) {
+    return [{ algoId: output.algo_id, metric: output.quality_metrics }]
+  }
+  if (
+    !execution?.quality_metrics
+    || typeof execution.quality_metrics !== 'object'
+    || !Object.keys(execution.quality_metrics).length
+  ) {
+    return []
+  }
+  return Object.entries(execution.quality_metrics).map(([algoId, metric]) => ({
+    algoId,
+    metric,
+  }))
+}
+
+function buildSubtaskExecution(
+  parentExecution,
+  subtask,
+  { includeOverallDownloads = false, includeImageSource = false } = {},
+) {
+  const overallDownloads = includeOverallDownloads
+    ? {
+        report: parentExecution?.download_urls?.report,
+        recommendation: parentExecution?.download_urls?.recommendation,
+      }
+    : {}
+  return {
+    executed: true,
+    isSubtask: true,
+    session_id: parentExecution?.session_id || '',
+    source: parentExecution?.source || '',
+    image_source: includeImageSource ? parentExecution?.image_source || '' : '',
+    pipeline: subtask?.algo_id ? [subtask.algo_id] : [],
+    step_reports: subtask?.step_report ? [subtask.step_report] : [],
+    quality_metrics: subtask?.algo_id ? { [subtask.algo_id]: subtask.quality_metrics || {} } : {},
+    output_image: subtask?.output_image || '',
+    outputs: [subtask],
+    download_urls: {
+      ...(subtask?.download_urls || {}),
+      ...overallDownloads,
+    },
+  }
+}
+
+function appendAssistantMessages(data) {
+  const subtasks = Array.isArray(data?.execution?.subtasks) ? data.execution.subtasks : []
+  const shouldSplitMessages = subtasks.length > 1
+
+  messages.value.push({
+    role: 'assistant',
+    content: data.answer || '已完成处理。',
+    recommendation: data.recommendation,
+    execution: shouldSplitMessages ? null : data.execution,
+    decisionLog: data.decision_log,
+  })
+
+  if (!shouldSplitMessages) {
+    return
+  }
+
+  subtasks.forEach((subtask, index) => {
+    messages.value.push({
+      role: 'assistant',
+      content: subtask.message || subtask.summary || `子任务 ${index + 1} 已完成。`,
+      execution: buildSubtaskExecution(data.execution, subtask, {
+        includeOverallDownloads: index === subtasks.length - 1,
+        includeImageSource: index === 0,
+      }),
+      excludeFromHistory: true,
+    })
+  })
 }
 
 async function sendMessage() {
@@ -262,10 +400,20 @@ async function sendMessage() {
     return
   }
   const historyPayload = toHistoryPayload()
+  const currentFile = selectedFile.value
+  const previewImage = buildUserUploadPreview(currentFile)
+  const attachmentName = currentFile?.name || ''
+  const isDlisUpload = Boolean(currentFile && currentFile.name?.toLowerCase().endsWith('.dlis'))
+  const defaultMessage = isDlisUpload ? '[上传 DLIS 文件进行分析]' : '[上传图像进行分析]'
+  const defaultPrompt = isDlisUpload
+    ? '请解析这个 DLIS 文件，列出主要通道并按需生成 ATV 图或玫瑰图'
+    : '请分析这张图像，并给出去伪影或增强建议'
 
   messages.value.push({
     role: 'user',
-    content: text || '[上传图像进行分析]',
+    content: text || defaultMessage,
+    attachmentName,
+    previewImage,
   })
   inputText.value = ''
   scrollToBottom()
@@ -273,24 +421,17 @@ async function sendMessage() {
   try {
     sending.value = true
     const formData = new FormData()
-    formData.append('message', text || '请分析这张图像，并给出去伪影或增强建议')
+    formData.append('message', text || defaultPrompt)
     formData.append('history_json', JSON.stringify(historyPayload))
-    formData.append('include_enhancement', String(includeEnhancement.value))
     formData.append('execute_on_upload', 'true')
-    if (selectedFile.value) {
-      formData.append('image_file', selectedFile.value)
+    if (currentFile) {
+      formData.append('image_file', currentFile)
     } else if (lastExecutionSessionId.value) {
       formData.append('reuse_session_id', lastExecutionSessionId.value)
     }
 
     const data = await chatAgent(formData)
-    messages.value.push({
-      role: 'assistant',
-      content: data.answer || '已完成处理。',
-      recommendation: data.recommendation,
-      execution: data.execution,
-      decisionLog: data.decision_log,
-    })
+    appendAssistantMessages(data)
     if (data?.execution?.executed && data?.execution?.session_id) {
       lastExecutionSessionId.value = data.execution.session_id
     }
@@ -364,7 +505,7 @@ function resetChat() {
   messages.value = [
     {
       role: 'assistant',
-      content: '新的对话已开始。你可以继续上传 ATV 图像并描述去伪影、增强或超分目标。',
+      content: '新的对话已开始。你可以继续上传 ATV 图像或 DLIS 文件，并描述去伪影、增强、超分或 DLIS 可视化目标。',
     },
   ]
   selectedFile.value = null
@@ -585,6 +726,21 @@ onMounted(() => {
   white-space: pre-wrap;
 }
 
+.user-attachment {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.user-preview-image {
+  display: block;
+  margin-top: 10px;
+  max-width: min(420px, 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
 .markdown-body :deep(p) {
   margin: 0 0 8px;
 }
@@ -698,6 +854,37 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.result-card {
+  padding: 10px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.result-card + .result-card {
+  margin-top: 10px;
+}
+
+.result-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.result-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.result-summary {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
 }
 
 .metrics-row {

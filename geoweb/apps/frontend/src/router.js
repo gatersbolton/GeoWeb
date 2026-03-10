@@ -9,6 +9,7 @@ import StressInversion from './views/StressInversion.vue'
 import DataAugmentation from './views/DataAugmentation.vue'
 import Profile from './views/Profile.vue'
 import AgentAssistant from './views/AgentAssistant.vue'
+import DlisWorkbench from './views/DlisWorkbench.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -18,6 +19,7 @@ const routes = [
   { path: '/user', component: User },
   { path: '/profile', component: Profile },
   { path: '/csv', component: CsvSum },
+  { path: '/dlis', component: DlisWorkbench },
   { path: '/borehole', component: BoreholeEllipticity },
   { path: '/stressinv', component: StressInversion },
   { path: '/augmentation', component: DataAugmentation },
