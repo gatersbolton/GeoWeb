@@ -92,3 +92,38 @@ def ensure_geo_core_path() -> None:
 # Ensure path immediately on import for geo-core algorithm framework.
 ensure_geo_core_path()
 
+
+def geo_core_dlis_dir() -> str:
+    """Return path to legacy DLIS sample source directory."""
+    return os.path.join(geo_core_artifacts_dir(), 'dlis')
+
+
+def dlis_demo_dir() -> str:
+    """Return path to bundled DLIS demo raw directory."""
+    return os.path.join(geo_core_dlis_dir(), 'raw')
+
+
+def dlis_demo_file() -> str:
+    """Return path to the first bundled DLIS demo file."""
+    directory = dlis_demo_dir()
+    if not os.path.isdir(directory):
+        return os.path.join(directory, 'demo.dlis')
+    files = [
+        os.path.join(directory, name)
+        for name in sorted(os.listdir(directory))
+        if name.lower().endswith('.dlis')
+    ]
+    if files:
+        return files[0]
+    return os.path.join(directory, 'demo.dlis')
+
+
+def groovemask_dir() -> str:
+    """Return path to the GrooveMask source implementation directory."""
+    return os.path.join(geo_core_artifacts_dir(), 'groovemask')
+
+
+def groovemask_demo_image() -> str:
+    """Return path to the bundled GrooveMask demo image."""
+    return os.path.join(groovemask_dir(), 'tests', 'groovemask_test.png')
+
