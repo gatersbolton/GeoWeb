@@ -21,6 +21,7 @@ def test_super_resolution_default_config_has_three_levels() -> None:
     assert "experimental" in config
     assert config["safe"]["model_name"] == "RealESRGAN_x4plus"
     assert config["advanced"]["outscale"] == 1.0
+    assert config["advanced"]["detail_strength"] == 0.72
 
 
 def test_super_resolution_legacy_config_is_normalized() -> None:
@@ -54,7 +55,32 @@ def test_super_resolution_run_uses_backend_and_returns_float32(monkeypatch: pyte
     assert output.result.shape == (4, 4)
     assert output.result.dtype == np.float32
     assert output.quality_metrics["applied_outscale"] == 2.0
+    assert output.quality_metrics["detail_strength"] == 0.72
     assert "running Real-ESRGAN on CPU" in output.run_report.warnings[0]
+
+
+def test_super_resolution_default_detail_strength_softens_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    algorithm = superres_algorithm.SuperResolutionEnhancement()
+    frame = _build_frame(np.array([[0, 0], [0, 255]], dtype=np.float32))
+    config = algorithm.get_default_config()
+    config["advanced"]["outscale"] = 2.0
+
+    class _FakeRunner:
+        device_label = "cpu"
+
+        def enhance(self, image, *, outscale: float, alpha_upsampler: str) -> np.ndarray:
+            factor = max(int(round(outscale)), 1)
+            height = image.shape[0] * factor
+            width = image.shape[1] * factor
+            return np.full((height, width), 255, dtype=np.uint8)
+
+    monkeypatch.setattr(superres_algorithm, "resolve_model_path", lambda *args, **kwargs: Path("mock.pth"))
+    monkeypatch.setattr(superres_algorithm, "get_realesrgan_runner", lambda **kwargs: _FakeRunner())
+
+    output = algorithm.run(frame, config, RunContext(job_id="j4", step_index=1))
+    assert output.result.shape == (4, 4)
+    assert float(output.result.mean()) < 255.0
+    assert output.quality_metrics["detail_strength"] == 0.72
 
 
 def test_super_resolution_rejects_empty_input() -> None:

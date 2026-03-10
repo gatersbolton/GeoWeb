@@ -9,6 +9,7 @@ def test_get_algorithms_returns_registered_items() -> None:
     algo_ids = {item.algo_id for item in payload}
     assert "artifact.stick_pull.v1" in algo_ids
     assert "artifact.decentralization.v1" in algo_ids
+    assert "artifact.groovemask.v1" in algo_ids
     assert "enhancement.super_resolution.v1" in algo_ids
 
 
@@ -58,5 +59,7 @@ def test_agent_chat_returns_answer_and_optional_recommendation() -> None:
 def test_agent_tools_contains_planned_atv_capabilities() -> None:
     tools = list_agent_tools()
     tool_ids = {item.tool_id for item in tools}
+    assert "algo:artifact.groovemask.v1" in tool_ids
     assert "algo:artifact.stick_pull.v1" in tool_ids
+    assert "dlis.visualize.v1" in tool_ids
     assert "atv.fracture_pick.v1" in tool_ids

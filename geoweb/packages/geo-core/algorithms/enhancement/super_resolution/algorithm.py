@@ -100,8 +100,13 @@ class SuperResolutionEnhancement:
                 outscale=float(parsed.advanced.outscale),
                 alpha_upsampler=parsed.advanced.alpha_upsampler,
             )
-            result = _restore_result(
+            blended = _apply_detail_strength_blend(
                 enhanced,
+                base_input=prepared["model_input"],
+                detail_strength=float(parsed.advanced.detail_strength),
+            )
+            result = _restore_result(
+                blended,
                 prepared=prepared,
                 data_layout=input_data.data_layout,
                 value_range=input_data.value_range,
@@ -112,6 +117,7 @@ class SuperResolutionEnhancement:
                 data_layout=input_data.data_layout,
                 value_range=input_data.value_range,
                 outscale=float(parsed.advanced.outscale),
+                detail_strength=float(parsed.advanced.detail_strength),
             )
 
             preview_assets: list[str] = []
@@ -316,6 +322,46 @@ def _resize_gray(gray: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
     return (np.asarray(image, dtype=np.float32) / 255.0).astype(np.float32)
 
 
+def _resize_channel(channel: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+    if channel.shape == shape:
+        return channel
+    resample = Image.Resampling.BICUBIC if hasattr(Image, "Resampling") else Image.BICUBIC
+    image = Image.fromarray(channel)
+    resized = image.resize((shape[1], shape[0]), resample=resample)
+    return np.asarray(resized, dtype=channel.dtype)
+
+
+def _resize_like(data: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+    array = np.asarray(data)
+    if array.ndim == 2:
+        return _resize_channel(array, shape)
+    if array.ndim != 3:
+        raise AlgorithmExecutionError("Unsupported image shape for detail-strength blending.")
+    resized_channels = [_resize_channel(array[..., index], shape) for index in range(array.shape[2])]
+    return np.stack(resized_channels, axis=2).astype(array.dtype)
+
+
+def _apply_detail_strength_blend(
+    enhanced: np.ndarray,
+    *,
+    base_input: np.ndarray,
+    detail_strength: float,
+) -> np.ndarray:
+    weight = float(np.clip(detail_strength, 0.0, 1.0))
+    enhanced_array = np.asarray(enhanced)
+    if weight >= 0.999:
+        return enhanced_array
+
+    target_shape = enhanced_array.shape[:2]
+    reference = _resize_like(np.asarray(base_input), target_shape).astype(np.float32)
+    blended = enhanced_array.astype(np.float32) * weight + reference * (1.0 - weight)
+
+    if np.issubdtype(enhanced_array.dtype, np.integer):
+        dtype_info = np.iinfo(enhanced_array.dtype)
+        return np.clip(np.round(blended), dtype_info.min, dtype_info.max).astype(enhanced_array.dtype)
+    return blended.astype(enhanced_array.dtype)
+
+
 def _edge_energy(gray: np.ndarray) -> float:
     grad_y = np.abs(np.gradient(gray, axis=0))
     grad_x = np.abs(np.gradient(gray, axis=1))
@@ -329,6 +375,7 @@ def _build_quality_metrics(
     data_layout: str,
     value_range: list[float],
     outscale: float,
+    detail_strength: float,
 ) -> dict[str, float]:
     original_gray = _to_gray01(original, data_layout, value_range)
     restored_gray = _to_gray01(restored, data_layout, value_range)
@@ -347,6 +394,7 @@ def _build_quality_metrics(
         "contrast_delta": float(restored_contrast - original_contrast),
         "contrast_gain": float(restored_contrast / (original_contrast + 1e-6)),
         "applied_outscale": float(outscale),
+        "detail_strength": float(detail_strength),
         "output_height": float(restored_gray.shape[0]),
         "output_width": float(restored_gray.shape[1]),
     }

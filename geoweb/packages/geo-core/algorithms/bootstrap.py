@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from algorithms.artifacts.decentralization.algorithm import DecentralizationArtifactRemoval
+from algorithms.artifacts.groovemask.algorithm import GrooveMaskArtifactRemoval
 from algorithms.artifacts.stick_pull.algorithm import StickPullArtifactRemoval
 from algorithms.core.registry import AlgorithmRegistry, load_capability_file
 from algorithms.enhancement.super_resolution.algorithm import SuperResolutionEnhancement
@@ -22,6 +23,12 @@ def build_default_registry() -> AlgorithmRegistry:
     registry.register(
         decentralization,
         load_capability_file(package_root / "artifacts" / "decentralization" / "capability.json"),
+    )
+
+    groovemask = GrooveMaskArtifactRemoval()
+    registry.register(
+        groovemask,
+        load_capability_file(package_root / "artifacts" / "groovemask" / "capability.json"),
     )
 
     super_resolution = SuperResolutionEnhancement()

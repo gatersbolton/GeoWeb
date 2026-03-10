@@ -4,6 +4,7 @@ safe:
   fallback_to_identity_on_error: false
 advanced:
   outscale: 1.0
+  detail_strength: 0.72
   tile: 0
   tile_pad: 10
   pre_pad: 0

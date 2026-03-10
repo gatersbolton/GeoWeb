@@ -1,0 +1,15 @@
+{
+  "input": "tests\\groovemask_test.png",
+  "backend": "groovemask_inpaint",
+  "mode": "clean",
+  "track_count": 6,
+  "artifacts": {
+    "clean": "out\\groovemask_test_clean_v2\\clean.png",
+    "mask": "out\\groovemask_test_clean_v2\\mask.png",
+    "overlay": "out\\groovemask_test_clean_v2\\overlay.png",
+    "diff": "out\\groovemask_test_clean_v2\\diff.png",
+    "tracks": "out\\groovemask_test_clean_v2\\tracks.json",
+    "debug_dir": "out\\groovemask_test_clean_v2\\debug",
+    "meta": "out\\groovemask_test_clean_v2\\meta.json"
+  }
+}

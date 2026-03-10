@@ -6,10 +6,22 @@ from typing import Any
 from algorithms.agents.contracts import AgentRecommendRequest, AgentRecommendResponse, CandidateScore
 from algorithms.core.registry import AlgorithmRegistry
 
-KNOWN_ARTIFACT_TAGS = ("stick_pull", "decentralization")
+KNOWN_ARTIFACT_TAGS = ("groovemask", "stick_pull", "decentralization")
 DEFAULT_ARTIFACT_PIPELINE = ("artifact.stick_pull.v1", "artifact.decentralization.v1")
 DEFAULT_ENHANCEMENT_ALGO = "enhancement.super_resolution.v1"
 
+_GROOVEMASK_HINTS = (
+    "groovemask",
+    "groove mask",
+    "groove",
+    "slot artifact",
+    "stabilizer groove",
+    "stabilizer slot",
+    "槽沟",
+    "沟槽",
+    "稳定器槽",
+    "竖槽",
+)
 _STICK_PULL_HINTS = (
     "stick_pull",
     "stick pull",
@@ -83,6 +95,11 @@ def infer_prompt_hints(prompt: str) -> dict[str, Any]:
     matched_tokens: dict[str, list[str]] = {}
     artifact_tags: set[str] = set()
 
+    groove_hits = [token for token in _GROOVEMASK_HINTS if token in text]
+    if groove_hits:
+        artifact_tags.add("groovemask")
+        matched_tokens["groovemask"] = groove_hits
+
     stick_hits = [token for token in _STICK_PULL_HINTS if token in text]
     if stick_hits:
         artifact_tags.add("stick_pull")
@@ -147,10 +164,8 @@ def _resolve_include_enhancement(
     prompt_hints: dict[str, Any],
 ) -> bool:
     hinted = prompt_hints["include_enhancement"]
+    # Only run enhancement when the user explicitly asks for it in the prompt.
     if hinted is None:
-        return request.include_enhancement
-    # Explicit API request takes precedence over prompt hints when disabled.
-    if request.include_enhancement is False:
         return False
     return bool(hinted)
 
@@ -337,7 +352,7 @@ def recommend(request: AgentRecommendRequest, registry: AlgorithmRegistry) -> Ag
 
     follow_up_question = None
     if not tags and request.user_prompt.strip() and not enhancement_only:
-        follow_up_question = "可补充伪影类型（stick_pull/decentralization）或样本特征，以提高推荐准确度。"
+        follow_up_question = "可补充伪影类型（groovemask/stick_pull/decentralization）或样本特征，以提高推荐准确度。"
 
     return AgentRecommendResponse(
         recommended_pipeline=pipeline,

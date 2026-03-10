@@ -1,0 +1,34 @@
+[project]
+name = "borehole-groove-cleaner"
+version = "0.1.0"
+description = "Stabilizer groove artifact removal for unwrapped borehole images"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.23,<3.0",
+  "scipy>=1.10,<2.0",
+  "opencv-python>=4.8,<5.0",
+  "Pillow>=10.0,<12.0",
+  "PyYAML>=6.0,<7.0",
+  "matplotlib>=3.8,<4.0",
+  "scikit-image>=0.22,<1.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<9.0"
+]
+
+[project.scripts]
+borehole-groove-cleaner = "borehole_groove_cleaner.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

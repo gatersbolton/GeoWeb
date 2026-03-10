@@ -1,0 +1,22 @@
+{
+  "algo_id": "artifact.groovemask.v1",
+  "handles_artifact_types": ["groovemask"],
+  "input_requirements": {
+    "resolution_range": "2D/3D image arrays",
+    "noise_level": "low-to-medium",
+    "requires_depth_metadata": false,
+    "supported_layouts": ["HW", "HWC", "CHW"]
+  },
+  "output_characteristics": {
+    "edge_preservation": "high",
+    "smoothing_tendency": "localized",
+    "supports_mask_outputs": true,
+    "supports_debug_overlays": true,
+    "backends": ["groovemask_inpaint", "fourier_soft_notch", "variational_decompose"]
+  },
+  "cost_profile": {
+    "runtime": "medium",
+    "memory": "medium",
+    "device": "cpu"
+  }
+}

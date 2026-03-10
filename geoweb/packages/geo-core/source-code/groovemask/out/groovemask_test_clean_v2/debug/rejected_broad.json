@@ -1,0 +1,90 @@
+[
+  {
+    "window": [
+      0,
+      128
+    ],
+    "start": 134,
+    "end": 145,
+    "width": 11,
+    "polarity": "dark",
+    "reason": "rejected_as_broad_shading_or_non_groove"
+  },
+  {
+    "window": [
+      64,
+      192
+    ],
+    "start": 128,
+    "end": 139,
+    "width": 11,
+    "polarity": "dark",
+    "reason": "rejected_as_broad_shading_or_non_groove"
+  },
+  {
+    "window": [
+      256,
+      384
+    ],
+    "start": 123,
+    "end": 134,
+    "width": 11,
+    "polarity": "dark",
+    "reason": "rejected_as_broad_shading_or_non_groove"
+  },
+  {
+    "window": [
+      448,
+      576
+    ],
+    "start": 123,
+    "end": 134,
+    "width": 11,
+    "polarity": "dark",
+    "reason": "rejected_as_broad_shading_or_non_groove"
+  },
+  {
+    "window": [
+      576,
+      704
+    ],
+    "start": 122,
+    "end": 134,
+    "width": 12,
+    "polarity": "dark",
+    "reason": "rejected_as_broad_shading_or_non_groove"
+  },
+  {
+    "window": [
+      640,
+      768
+    ],
+    "start": 121,
+    "end": 135,
+    "width": 14,
+    "polarity": "dark",
+    "reason": "rejected_as_broad_shading_or_non_groove"
+  },
+  {
+    "window": [
+      704,
+      832
+    ],
+    "start": 27,
+    "end": 40,
+    "width": 13,
+    "polarity": "dark",
+    "reason": "rejected_as_broad_shading_or_non_groove"
+  },
+  {
+    "window": [
+      704,
+      832
+    ],
+    "start": 126,
+    "end": 137,
+    "width": 11,
+    "polarity": "dark",
+    "reason": "rejected_as_broad_shading_or_non_groove"
+  }
+]

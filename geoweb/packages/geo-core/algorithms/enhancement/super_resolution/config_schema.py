@@ -40,6 +40,7 @@ class SuperResolutionSafeConfig(BaseModel):
 
 class SuperResolutionAdvancedConfig(BaseModel):
     outscale: float = Field(default=1.0, ge=1.0, le=8.0)
+    detail_strength: float = Field(default=0.72, ge=0.0, le=1.0)
     tile: int = Field(default=0, ge=0)
     tile_pad: int = Field(default=10, ge=0, le=128)
     pre_pad: int = Field(default=0, ge=0, le=128)

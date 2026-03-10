@@ -10,9 +10,10 @@
   },
   "output_characteristics": {
     "edge_preservation": "high",
-    "smoothing_tendency": "low",
+    "smoothing_tendency": "low-to-medium",
     "supports_arbitrary_outscale": true,
-    "default_outscale": 1.0
+    "default_outscale": 1.0,
+    "default_detail_strength": 0.72
   },
   "cost_profile": {
     "runtime": "medium",

@@ -47,6 +47,17 @@ def build_default_tool_registry(registry: AlgorithmRegistry) -> AgentToolRegistr
     # Planned ATV capabilities for future extensions.
     tool_registry.register(
         AgentToolSpec(
+            tool_id="dlis.visualize.v1",
+            display_name="DLIS visualization",
+            category="analysis",
+            description="解析 DLIS 文件，浏览通道，并生成 ATV 振幅/走时图与方位玫瑰图。",
+            status="active",
+            handles=["dlis", "atv_image", "rose_plot", "channel_inspection"],
+            metadata={"owner": "atv-agent", "input_formats": ["dlis"]},
+        )
+    )
+    tool_registry.register(
+        AgentToolSpec(
             tool_id="atv.fracture_pick.v1",
             display_name="fracture picking",
             category="analysis",

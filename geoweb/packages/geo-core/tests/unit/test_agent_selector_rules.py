@@ -20,6 +20,19 @@ def test_recommend_uses_prompt_when_tags_missing() -> None:
         registry,
     )
     assert response.recommended_pipeline[0] == "artifact.stick_pull.v1"
+    assert "enhancement.super_resolution.v1" not in response.recommended_pipeline
+
+
+def test_recommend_routes_groove_prompt_to_groovemask() -> None:
+    registry = build_default_registry()
+    response = recommend(
+        AgentRecommendRequest(
+            user_prompt="这张图有明显稳定器槽沟伪影，帮我去掉",
+            artifact_tags=[],
+        ),
+        registry,
+    )
+    assert response.recommended_pipeline == ["artifact.groovemask.v1"]
 
 
 def test_recommend_applies_decentralization_method_hint() -> None:
@@ -48,4 +61,17 @@ def test_recommend_routes_enhancement_only_prompt_to_super_resolution() -> None:
     assert response.recommended_pipeline == ["enhancement.super_resolution.v1"]
     config = response.recommended_configs["enhancement.super_resolution.v1"]
     assert config["advanced"]["outscale"] == 4.0
+    assert config["advanced"]["detail_strength"] == 0.72
     assert response.follow_up_question is None
+
+
+def test_recommend_does_not_auto_append_enhancement_for_artifact_only_prompt() -> None:
+    registry = build_default_registry()
+    response = recommend(
+        AgentRecommendRequest(
+            user_prompt="帮我给它去除去中心化的伪影",
+            include_enhancement=True,
+        ),
+        registry,
+    )
+    assert response.recommended_pipeline == ["artifact.decentralization.v1"]

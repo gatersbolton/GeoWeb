@@ -22,7 +22,7 @@ from algorithms.agents.tools.registry import AgentToolRegistry, build_default_to
 from algorithms.core.registry import AlgorithmRegistry
 
 _ALLOWED_METHODS = {"harmonic", "azimuth_equalization", "agc"}
-_ALLOWED_TAGS = {"stick_pull", "decentralization"}
+_ALLOWED_TAGS = {"groovemask", "stick_pull", "decentralization"}
 
 
 class ATVExpertAgentService:
@@ -211,14 +211,27 @@ def _looks_like_recommendation_request(message: str) -> bool:
         "推荐",
         "recommend",
         "去伪影",
+        "groovemask",
+        "groove",
+        "槽沟",
+        "沟槽",
+        "稳定器槽",
         "stick_pull",
         "decentralization",
+        "去中心",
+        "去中心化",
+        "偏心",
         "算法",
         "pipeline",
         "增强",
         "超分",
         "super resolution",
         "enhance",
+        "dlis",
+        "rose plot",
+        "channel",
+        "通道",
+        "玫瑰图",
         "裂隙",
         "崩落",
     ]
@@ -244,6 +257,12 @@ def _fallback_answer(
             "如需进一步细化参数，请补充样本分辨率、噪声等级和目标解释任务。"
         )
 
+    if "dlis" in lower or any(token in text for token in ("玫瑰图", "通道", "幅度图", "振幅图", "时差图", "走时图")):
+        return (
+            "我可以解析 DLIS 文件，列出通道，并生成 ATV 振幅图、走时图或方位玫瑰图。"
+            f"请上传 `.dlis` 文件并说明希望查看的结果。{error_tip}"
+        )
+
     if not text:
         return f"你可以直接描述问题，或上传 ATV 图像让我分析。{error_tip}"
 
@@ -263,7 +282,8 @@ def _fallback_answer(
     ):
         return (
             "我目前支持：1) 去伪影算法推荐；2) 图像增强/超分；3) 图像上传后自动执行 pipeline；"
-            f"4) 返回结果预览与下载。你可以先发一条目标描述，例如“去除去中心化伪影”或“做 4 倍超分增强”。{error_tip}"
+            "4) DLIS 文件解析与 ATV/玫瑰图生成；"
+            f"5) 返回结果预览与下载。你可以先发一条目标描述，例如“去除槽沟伪影”“去除去中心化伪影”或“生成 DLIS 玫瑰图”。{error_tip}"
         )
 
     if any(token in lower for token in ("thanks", "thank you")) or any(
@@ -274,7 +294,7 @@ def _fallback_answer(
     brief = text if len(text) <= 24 else text[:24] + "..."
     return (
         f"我理解你在问“{brief}”。我当前处于离线规则对话模式。"
-        f"如果你希望我给出算法方案，请描述伪影类型（如 stick_pull、去中心化）或直接上传图像。{error_tip}"
+        f"如果你希望我给出算法方案，请描述伪影类型（如 groovemask、stick_pull、去中心化）或直接上传图像。{error_tip}"
     )
 
 

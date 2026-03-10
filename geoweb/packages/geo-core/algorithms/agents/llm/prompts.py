@@ -40,7 +40,7 @@ def build_recommendation_messages(
     system_prompt = (
         "你是 ATV 去伪影路由专家。"
         "请从用户提示中识别伪影类型和参数偏好，仅返回 JSON 对象，键必须包含：\n"
-        "artifact_tags: string[] (候选值: stick_pull, decentralization)\n"
+        "artifact_tags: string[] (候选值: groovemask, stick_pull, decentralization)\n"
         "include_enhancement: boolean|null\n"
         "prefer_decentralization_method: string|null (候选值: harmonic, azimuth_equalization, agc)\n"
         "confidence: number (0~1)\n"
